@@ -1,11 +1,11 @@
 {
-  "name": "xterm",
-  "description": "Full xterm terminal, in your browser",
-  "version": "4.13.0",
+  "name": "@daiyam/xterm-tab",
+  "description": "xterm terminal with tab support",
+  "version": "4.13.0+d.1",
   "main": "lib/xterm.js",
   "style": "css/xterm.css",
   "types": "typings/xterm.d.ts",
-  "repository": "https://github.com/xtermjs/xterm.js",
+  "repository": "https://github.com/daiyam/xterm-tab",
   "license": "MIT",
   "scripts": {
     "prepackage": "npm run build",
