@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { ILinkProvider, ILink, Terminal, IViewportRange } from 'xterm';
+import { ILinkProvider, ILink, Terminal, IViewportRange } from '@daiyam/xterm-tab';
 
 interface ILinkProviderOptions {
   hover?(event: MouseEvent, text: string, location: IViewportRange): void;

@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { IDisposable, IMarker, ISelectionPosition, ILinkProvider } from 'xterm';
+import { IDisposable, IMarker, ISelectionPosition, ILinkProvider } from '@daiyam/xterm-tab';
 import { IEvent, EventEmitter } from 'common/EventEmitter';
 import { ICharacterJoinerService, ICharSizeService, IMouseService, IRenderService, ISelectionService } from 'browser/services/Services';
 import { IRenderDimensions, IRenderer, IRequestRedrawEvent } from 'browser/renderer/Types';

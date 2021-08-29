@@ -9,7 +9,7 @@
 
 /// <reference lib="dom"/>
 
-declare module 'xterm' {
+declare module '@daiyam/xterm-tab' {
   /**
    * A string or number representing text font weight.
    */

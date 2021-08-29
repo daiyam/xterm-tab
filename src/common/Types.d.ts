@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { IFunctionIdentifier, ITerminalOptions as IPublicTerminalOptions } from 'xterm';
+import { IFunctionIdentifier, ITerminalOptions as IPublicTerminalOptions } from '@daiyam/xterm-tab';
 import { IEvent, IEventEmitter } from 'common/EventEmitter';
 import { IDeleteEvent, IInsertEvent } from 'common/CircularList';
 import { IParams } from 'common/parser/Types';

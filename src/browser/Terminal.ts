@@ -37,7 +37,7 @@ import * as Strings from 'browser/LocalizableStrings';
 import { SoundService } from 'browser/services/SoundService';
 import { MouseZoneManager } from 'browser/MouseZoneManager';
 import { AccessibilityManager } from './AccessibilityManager';
-import { ITheme, IMarker, IDisposable, ISelectionPosition, ILinkProvider } from 'xterm';
+import { ITheme, IMarker, IDisposable, ISelectionPosition, ILinkProvider } from '@daiyam/xterm-tab';
 import { DomRenderer } from 'browser/renderer/dom/DomRenderer';
 import { IKeyboardEvent, KeyboardResultType, CoreMouseEventType, CoreMouseButton, CoreMouseAction, ITerminalOptions, ScrollSource, IAnsiColorChangeEvent } from 'common/Types';
 import { evaluateKeyboardEvent } from 'common/input/Keyboard';

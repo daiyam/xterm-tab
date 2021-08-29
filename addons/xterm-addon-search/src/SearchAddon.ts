@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal, IDisposable, ITerminalAddon, ISelectionPosition } from 'xterm';
+import { Terminal, IDisposable, ITerminalAddon, ISelectionPosition } from '@daiyam/xterm-tab';
 
 export interface ISearchOptions {
   regex?: boolean;

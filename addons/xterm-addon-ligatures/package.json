@@ -22,13 +22,6 @@
     "test": "nyc mocha out/**/*.test.js",
     "prepublish": "npm run package"
   },
-  "keywords": [
-    "font",
-    "ligature",
-    "xterm",
-    "xterm.js",
-    "terminal"
-  ],
   "license": "MIT",
   "dependencies": {
     "font-finder": "^1.1.0",
@@ -42,6 +35,6 @@
     "yauzl": "^2.10.0"
   },
   "peerDependencies": {
-    "xterm": "^4.0.0"
+    "@daiyam/xterm-tab": "^4.0.0"
   }
 }

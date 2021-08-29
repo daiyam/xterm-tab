@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { IUnicodeVersionProvider } from 'xterm';
+import { IUnicodeVersionProvider } from '@daiyam/xterm-tab';
 import { fill } from 'common/TypedArrayUtils';
 
 type CharWidth = 0 | 1 | 2;

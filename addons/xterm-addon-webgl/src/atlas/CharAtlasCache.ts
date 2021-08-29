@@ -6,7 +6,7 @@
 import { generateConfig, configEquals } from './CharAtlasUtils';
 import { WebglCharAtlas } from './WebglCharAtlas';
 import { ICharAtlasConfig } from './Types';
-import { Terminal } from 'xterm';
+import { Terminal } from '@daiyam/xterm-tab';
 import { IColorSet } from 'browser/Types';
 
 interface ICharAtlasCacheEntry {

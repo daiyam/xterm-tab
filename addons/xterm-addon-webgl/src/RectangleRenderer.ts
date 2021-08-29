@@ -7,7 +7,7 @@ import { createProgram, expandFloat32Array, PROJECTION_MATRIX, throwIfFalsy } fr
 import { IRenderModel, IWebGLVertexArrayObject, IWebGL2RenderingContext, ISelectionRenderModel } from './Types';
 import { fill } from 'common/TypedArrayUtils';
 import { Attributes, FgFlags } from 'common/buffer/Constants';
-import { Terminal } from 'xterm';
+import { Terminal } from '@daiyam/xterm-tab';
 import { IColorSet, IColor } from 'browser/Types';
 import { IRenderDimensions } from 'browser/renderer/Types';
 import { RENDER_MODEL_BG_OFFSET, RENDER_MODEL_FG_OFFSET, RENDER_MODEL_INDICIES_PER_CELL } from './RenderModel';

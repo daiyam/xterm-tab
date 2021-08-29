@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal } from 'xterm';
+import { Terminal } from '@daiyam/xterm-tab';
 import { BaseRenderLayer } from './BaseRenderLayer';
 import { INVERTED_DEFAULT_COLOR } from 'browser/renderer/atlas/Constants';
 import { is256Color } from '../atlas/CharAtlasUtils';

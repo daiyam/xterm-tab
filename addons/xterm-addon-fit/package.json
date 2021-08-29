@@ -16,6 +16,6 @@
     "prepublishOnly": "npm run package"
   },
   "peerDependencies": {
-    "xterm": "^4.0.0"
+    "@daiyam/xterm-tab": "^4.0.0"
   }
 }

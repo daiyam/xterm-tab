@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { FontWeight } from 'xterm';
+import { FontWeight } from '@daiyam/xterm-tab';
 import { IColorSet } from 'browser/Types';
 
 export interface IGlyphIdentifier {

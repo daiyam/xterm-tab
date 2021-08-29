@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal as ITerminalApi, ITerminalOptions, IMarker, IDisposable, ILinkMatcherOptions, ITheme, ILocalizableStrings, ITerminalAddon, ISelectionPosition, IBufferNamespace as IBufferNamespaceApi, IParser, ILinkProvider, IUnicodeHandling, FontWeight, IModes } from 'xterm';
+import { Terminal as ITerminalApi, ITerminalOptions, IMarker, IDisposable, ILinkMatcherOptions, ITheme, ILocalizableStrings, ITerminalAddon, ISelectionPosition, IBufferNamespace as IBufferNamespaceApi, IParser, ILinkProvider, IUnicodeHandling, FontWeight, IModes } from '@daiyam/xterm-tab';
 import { ITerminal } from 'browser/Types';
 import { Terminal as TerminalCore } from 'browser/Terminal';
 import * as Strings from 'browser/LocalizableStrings';

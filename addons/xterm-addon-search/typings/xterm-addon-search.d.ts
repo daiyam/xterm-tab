@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal, ILinkMatcherOptions, IDisposable, ITerminalAddon } from 'xterm';
+import { Terminal, ILinkMatcherOptions, IDisposable, ITerminalAddon } from '@daiyam/xterm-tab';
 
 declare module 'xterm-addon-search' {
   /**

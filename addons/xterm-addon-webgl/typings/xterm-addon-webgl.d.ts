@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal, ITerminalAddon, IEvent } from 'xterm';
+import { Terminal, ITerminalAddon, IEvent } from '@daiyam/xterm-tab';
 
 declare module 'xterm-addon-webgl' {
   /**

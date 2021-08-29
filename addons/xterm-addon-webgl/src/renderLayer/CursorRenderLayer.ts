@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal } from 'xterm';
+import { Terminal } from '@daiyam/xterm-tab';
 import { BaseRenderLayer } from './BaseRenderLayer';
 import { ICellData } from 'common/Types';
 import { CellData } from 'common/buffer/CellData';

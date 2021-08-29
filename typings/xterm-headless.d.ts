@@ -7,7 +7,7 @@
  * to be stable and consumed by external programs.
  */
 
-declare module 'xterm-headless' {
+declare module '@daiyam/xterm-tab-headless' {
   /**
    * A string representing log level.
    */

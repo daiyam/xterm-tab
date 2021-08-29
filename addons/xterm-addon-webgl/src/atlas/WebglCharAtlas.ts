@@ -9,7 +9,7 @@ import { IRasterizedGlyph, IBoundingBox, IRasterizedGlyphSet } from '../Types';
 import { DEFAULT_COLOR, Attributes } from 'common/buffer/Constants';
 import { throwIfFalsy } from '../WebglUtils';
 import { IColor } from 'browser/Types';
-import { IDisposable } from 'xterm';
+import { IDisposable } from '@daiyam/xterm-tab';
 import { AttributeData } from 'common/buffer/AttributeData';
 import { channels, rgba } from 'browser/Color';
 import { tryDrawCustomChar } from 'browser/renderer/CustomGlyphs';

@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal, ILinkMatcherOptions, ITerminalAddon, IDisposable, IViewportRange } from 'xterm';
+import { Terminal, ILinkMatcherOptions, ITerminalAddon, IDisposable, IViewportRange } from '@daiyam/xterm-tab';
 import { WebLinkProvider } from './WebLinkProvider';
 
 const protocolClause = '(https?:\\/\\/)';

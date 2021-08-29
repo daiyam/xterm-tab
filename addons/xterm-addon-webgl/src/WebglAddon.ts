@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal, ITerminalAddon, IEvent } from 'xterm';
+import { Terminal, ITerminalAddon, IEvent } from '@daiyam/xterm-tab';
 import { WebglRenderer } from './WebglRenderer';
 import { ICharacterJoinerService, IRenderService } from 'browser/services/Services';
 import { IColorSet } from 'browser/Types';

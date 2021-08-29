@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { IDisposable, Terminal } from 'xterm';
+import { IDisposable, Terminal } from '@daiyam/xterm-tab';
 import { IColorSet } from 'browser/Types';
 import { IRenderDimensions } from 'browser/renderer/Types';
 
