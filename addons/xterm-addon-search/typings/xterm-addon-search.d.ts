@@ -5,7 +5,7 @@
 
 import { Terminal, ILinkMatcherOptions, IDisposable, ITerminalAddon } from '@daiyam/xterm-tab';
 
-declare module 'xterm-addon-search' {
+declare module '@daiyam/xterm-tab-addon-search' {
   /**
    * Options for a search.
    */

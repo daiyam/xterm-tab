@@ -5,7 +5,7 @@
 
 import { Terminal, ITerminalAddon } from '@daiyam/xterm-tab';
 
-declare module 'xterm-addon-unicode11' {
+declare module '@daiyam/xterm-tab-addon-unicode11' {
   export class Unicode11Addon implements ITerminalAddon {
     constructor();
     public activate(terminal: Terminal): void;

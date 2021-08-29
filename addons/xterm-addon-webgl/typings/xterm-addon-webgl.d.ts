@@ -5,7 +5,7 @@
 
 import { Terminal, ITerminalAddon, IEvent } from '@daiyam/xterm-tab';
 
-declare module 'xterm-addon-webgl' {
+declare module '@daiyam/xterm-tab-addon-webgl' {
   /**
    * An xterm.js addon that provides search functionality.
    */
