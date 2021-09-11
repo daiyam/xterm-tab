@@ -1,0 +1,9 @@
+{
+ "name": "@daiyam/xterm-tab-headless",
+ "description": "A headless terminal component that runs in Node.js",
+ "version": "4.14.0-d.1",
+ "main": "lib-headless/xterm-headless.js",
+ "types": "typings/xterm-headless.d.ts",
+ "repository": "https://github.com/daiyam/xterm-tab",
+ "license": "MIT"
+}

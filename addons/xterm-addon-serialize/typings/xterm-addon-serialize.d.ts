@@ -5,7 +5,7 @@
 
 import { Terminal, ITerminalAddon } from '@daiyam/xterm-tab';
 
-declare module 'xterm-addon-serialize' {
+declare module '@daiyam/xterm-tab-addon-serialize' {
   /**
    * An xterm.js addon that enables web links.
    */
