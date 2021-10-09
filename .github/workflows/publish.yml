@@ -16,6 +16,8 @@ jobs:
       - run: yarn --frozen-lockfile
       - run: yarn test
       - run: |
+          yarn package-headless
+
           npm publish --access=public
 
           cd headless
