@@ -18,7 +18,13 @@ jobs:
       - run: |
           npm publish --access=public
 
-          cd addons/xterm-addon-search
+          cd headless
+          npm publish --access=public
+
+          cd ../addons/xterm-addon-search
+          npm publish --access=public
+
+          cd ../xterm-addon-serialize
           npm publish --access=public
 
           cd ../xterm-addon-unicode11
