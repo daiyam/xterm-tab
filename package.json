@@ -1,7 +1,7 @@
 {
   "name": "@daiyam/xterm-tab",
   "description": "xterm terminal with tab support",
-  "version": "4.15.0-d.2",
+  "version": "4.15.0-d.3",
   "main": "lib/xterm.js",
   "style": "css/xterm.css",
   "types": "typings/xterm.d.ts",
