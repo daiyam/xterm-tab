@@ -6,6 +6,7 @@
 import { assert } from 'chai';
 import { pollFor, timeout, writeSync, openTerminal, launchBrowser } from './TestUtils';
 import { Browser, Page } from 'playwright';
+import { fail } from 'assert';
 
 const APP = 'http://127.0.0.1:3001/test';
 
@@ -158,6 +159,40 @@ describe('API Integration Tests', function(): void {
     assert.equal(await page.evaluate(`window.term.getOption('rendererType')`), 'canvas');
     await page.evaluate(`window.term.setOption('rendererType', 'dom')`);
     assert.equal(await page.evaluate(`window.term.getOption('rendererType')`), 'dom');
+  });
+
+  describe('options', () => {
+    it('getter', async () => {
+      await openTerminal(page);
+      assert.equal(await page.evaluate(`window.term.options.rendererType`), 'canvas');
+      assert.equal(await page.evaluate(`window.term.options.cols`), 80);
+      assert.equal(await page.evaluate(`window.term.options.rows`), 24);
+    });
+    it('setter', async () => {
+      await openTerminal(page);
+      try {
+        await page.evaluate('window.term.options.cols = 40');
+        fail();
+      } catch {}
+      try {
+        await page.evaluate('window.term.options.rows = 20');
+        fail();
+      } catch {}
+      await page.evaluate('window.term.options.scrollback = 1');
+      assert.equal(await page.evaluate(`window.term.options.scrollback`), 1);
+      await page.evaluate(`
+        window.term.options = {
+          fontSize: 30,
+          fontFamily: 'Arial'
+        };
+      `);
+      assert.equal(await page.evaluate(`window.term.options.fontSize`), 30);
+      assert.equal(await page.evaluate(`window.term.options.fontFamily`), 'Arial');
+    });
+    it('object.keys return the correct number of options', async () => {
+      await openTerminal(page);
+      assert.notEqual(await page.evaluate(`Object.keys(window.term.options).length`), 0);
+    });
   });
 
   describe('renderer', () => {
@@ -523,6 +558,29 @@ describe('API Integration Tests', function(): void {
         assert.equal(await page.evaluate(`window.term.buffer.active.getLine(0).getCell(1).getWidth()`), 2);
         assert.equal(await page.evaluate(`window.term.buffer.active.getLine(0).getCell(2).getChars()`), '');
         assert.equal(await page.evaluate(`window.term.buffer.active.getLine(0).getCell(2).getWidth()`), 0);
+      });
+
+      it('clearMarkers', async () => {
+        await openTerminal(page, { cols: 5 });
+        await page.evaluate(`
+          window.disposeStack = [];
+          `);
+        await writeSync(page, '\\n\\n\\n\\n');
+        await writeSync(page, '\\n\\n\\n\\n');
+        await writeSync(page, '\\n\\n\\n\\n');
+        await writeSync(page, '\\n\\n\\n\\n');
+        await page.evaluate(`window.term.addMarker(1)`);
+        await page.evaluate(`window.term.addMarker(2)`);
+        await page.evaluate(`window.term.scrollLines(10)`);
+        await page.evaluate(`window.term.addMarker(3)`);
+        await page.evaluate(`window.term.addMarker(4)`);
+        await page.evaluate(`      
+          for (let i = 0; i < window.term.markers.length; ++i) {
+              const marker = window.term.markers[i];
+              marker.onDispose(() => window.disposeStack.push(marker));
+          }`);
+        await page.evaluate(`window.term.clear()`);
+        assert.equal(await page.evaluate(`window.disposeStack.length`), 4);
       });
     });
 
