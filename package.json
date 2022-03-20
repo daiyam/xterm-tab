@@ -1,7 +1,7 @@
 {
   "name": "@daiyam/xterm-tab",
   "description": "Full xterm terminal, in your browser",
-  "version": "4.17.0-d.1",
+  "version": "4.18.0-d.0",
   "main": "lib/xterm.js",
   "style": "css/xterm.css",
   "types": "typings/xterm.d.ts",
