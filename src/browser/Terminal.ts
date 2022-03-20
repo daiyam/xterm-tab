@@ -37,7 +37,7 @@ import * as Strings from 'browser/LocalizableStrings';
 import { SoundService } from 'browser/services/SoundService';
 import { MouseZoneManager } from 'browser/MouseZoneManager';
 import { AccessibilityManager } from './AccessibilityManager';
-import { ITheme, IMarker, IDisposable, ISelectionPosition, ILinkProvider } from '@daiyam/xterm-tab';
+import { ITheme, IMarker, IDisposable, ISelectionPosition, ILinkProvider, IDecorationOptions, IDecoration } from '@daiyam/xterm-tab';
 import { DomRenderer } from 'browser/renderer/dom/DomRenderer';
 import { KeyboardResultType, CoreMouseEventType, CoreMouseButton, CoreMouseAction, ITerminalOptions, ScrollSource, IColorEvent, ColorIndex, ColorRequestType } from 'common/Types';
 import { evaluateKeyboardEvent } from 'common/input/Keyboard';
@@ -55,6 +55,10 @@ import { CoreTerminal } from 'common/CoreTerminal';
 import { color, rgba } from 'browser/Color';
 import { CharacterJoinerService } from 'browser/services/CharacterJoinerService';
 import { toRgbString } from 'common/input/XParseColor';
+import { BufferDecorationRenderer } from 'browser/Decorations/BufferDecorationRenderer';
+import { OverviewRulerRenderer } from 'browser/Decorations/OverviewRulerRenderer';
+import { DecorationService } from 'common/services/DecorationService';
+import { IDecorationService } from 'common/services/Services';
 
 // Let it work inside Node.js for automated testing purposes.
 const document: Document = (typeof window !== 'undefined') ? window.document : null as any;
@@ -70,6 +74,8 @@ export class Terminal extends CoreTerminal implements ITerminal {
   private _helperContainer: HTMLElement | undefined;
   private _compositionView: HTMLElement | undefined;
 
+  private _overviewRulerRenderer: OverviewRulerRenderer | undefined;
+
   // private _visualBellTimer: number;
 
   public browser: IBrowser = Browser as any;
@@ -77,6 +83,7 @@ export class Terminal extends CoreTerminal implements ITerminal {
   private _customKeyEventHandler: CustomKeyEventHandler | undefined;
 
   // browser services
+  private _decorationService: DecorationService;
   private _charSizeService: ICharSizeService | undefined;
   private _mouseService: IMouseService | undefined;
   private _renderService: IRenderService | undefined;
@@ -90,6 +97,12 @@ export class Terminal extends CoreTerminal implements ITerminal {
    * screen readers will announce it.
    */
   private _keyDownHandled: boolean = false;
+
+  /**
+   * Records whether a keydown event has occured since the last keyup event, i.e. whether a key
+   * is currently "pressed".
+   */
+  private _keyDownSeen: boolean = false;
 
   /**
    * Records whether the keypress event has already been handled and triggered a data event, if so
@@ -157,6 +170,8 @@ export class Terminal extends CoreTerminal implements ITerminal {
 
     this.linkifier = this._instantiationService.createInstance(Linkifier);
     this.linkifier2 = this.register(this._instantiationService.createInstance(Linkifier2));
+    this._decorationService = this._instantiationService.createInstance(DecorationService);
+    this._instantiationService.setService(IDecorationService, this._decorationService);
 
     // Setup InputHandler listeners
     this.register(this._inputHandler.onRequestBell(() => this.bell()));
@@ -468,6 +483,7 @@ export class Terminal extends CoreTerminal implements ITerminal {
     this._viewportElement = document.createElement('div');
     this._viewportElement.classList.add('xterm-viewport');
     fragment.appendChild(this._viewportElement);
+
     this._viewportScrollArea = document.createElement('div');
     this._viewportScrollArea.classList.add('xterm-scroll-area');
     this._viewportElement.appendChild(this._viewportScrollArea);
@@ -573,7 +589,7 @@ export class Terminal extends CoreTerminal implements ITerminal {
     this.register(this.onScroll(() => this._mouseZoneManager!.clearAll()));
     this.linkifier.attachToDom(this.element, this._mouseZoneManager);
     this.linkifier2.attachToDom(this.screenElement, this._mouseService, this._renderService);
-
+    this.register(this._instantiationService.createInstance(BufferDecorationRenderer, this.screenElement));
     // This event listener must be registered aftre MouseZoneManager is created
     this.register(addDisposableDomListener(this.element, 'mousedown', (e: MouseEvent) => this._selectionService!.onMouseDown(e)));
 
@@ -591,6 +607,13 @@ export class Terminal extends CoreTerminal implements ITerminal {
       this._accessibilityManager = new AccessibilityManager(this, this._renderService);
     }
 
+    if (this.options.overviewRulerWidth) {
+      this._overviewRulerRenderer = this._instantiationService.createInstance(OverviewRulerRenderer, this._viewportElement, this.screenElement);
+    }
+    this.optionsService.onOptionChange(() => {
+      if (!this._overviewRulerRenderer && this.options.overviewRulerWidth && this._viewportElement && this.screenElement) {
+        this._overviewRulerRenderer = this._instantiationService.createInstance(OverviewRulerRenderer, this._viewportElement, this.screenElement);
+      }});
     // Measure the character size
     this._charSizeService.measure();
 
@@ -998,6 +1021,10 @@ export class Terminal extends CoreTerminal implements ITerminal {
     return this.buffer.addMarker(this.buffer.ybase + this.buffer.y + cursorYOffset);
   }
 
+  public registerDecoration(decorationOptions: IDecorationOptions): IDecoration | undefined {
+    return this._decorationService.registerDecoration(decorationOptions);
+  }
+
   /**
    * Gets whether the terminal has an active selection.
    */
@@ -1062,6 +1089,7 @@ export class Terminal extends CoreTerminal implements ITerminal {
    */
   protected _keyDown(event: KeyboardEvent): boolean | undefined {
     this._keyDownHandled = false;
+    this._keyDownSeen = true;
 
     if (this._customKeyEventHandler && this._customKeyEventHandler(event) === false) {
       return false;
@@ -1147,6 +1175,8 @@ export class Terminal extends CoreTerminal implements ITerminal {
   }
 
   protected _keyUp(ev: KeyboardEvent): void {
+    this._keyDownSeen = false;
+
     if (this._customKeyEventHandler && this._customKeyEventHandler(ev) === false) {
       return;
     }
@@ -1220,7 +1250,8 @@ export class Terminal extends CoreTerminal implements ITerminal {
   protected _inputEvent(ev: InputEvent): boolean {
     // Only support emoji IMEs when screen reader mode is disabled as the event must bubble up to
     // support reading out character input which can doubling up input characters
-    if (ev.data && ev.inputType === 'insertText' && !ev.composed && !this.optionsService.rawOptions.screenReaderMode) {
+    // Based on these event traces: https://github.com/xtermjs/xterm.js/issues/3679
+    if (ev.data && ev.inputType === 'insertText' && (!ev.composed || !this._keyDownSeen) && !this.optionsService.rawOptions.screenReaderMode) {
       if (this._keyPressHandled) {
         return false;
       }
@@ -1293,7 +1324,7 @@ export class Terminal extends CoreTerminal implements ITerminal {
       // Don't clear if it's already clear
       return;
     }
-    this.buffer.clearMarkers();
+    this.buffer.clearAllMarkers(0);
     this.buffer.lines.set(0, this.buffer.lines.get(this.buffer.ybase + this.buffer.y)!);
     this.buffer.lines.length = 1;
     this.buffer.ydisp = 0;

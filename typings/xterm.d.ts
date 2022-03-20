@@ -266,6 +266,12 @@ declare module '@daiyam/xterm-tab' {
      * All features are disabled by default for security reasons.
      */
     windowOptions?: IWindowOptions;
+
+    /**
+     * The width, in pixels, of the canvas for the overview ruler. The overview
+     * ruler will be hidden when not set.
+     */
+    overviewRulerWidth?: number;
   }
 
   /**
@@ -380,29 +386,116 @@ declare module '@daiyam/xterm-tab' {
    * is trimmed and lines are added or removed. This is a single line that may
    * be part of a larger wrapped line.
    */
-  export interface IMarker extends IDisposable {
+  export interface IMarker extends IDisposableWithEvent {
     /**
      * A unique identifier for this marker.
      */
     readonly id: number;
 
     /**
-     * Whether this marker is disposed.
-     */
-    readonly isDisposed: boolean;
-
-    /**
      * The actual line index in the buffer at this point in time. This is set to
      * -1 if the marker has been disposed.
      */
     readonly line: number;
+  }
 
+  /**
+   * Represents a disposable that tracks is disposed state.
+   * @param onDispose event listener and
+   * @param isDisposed property.
+   */
+  export interface IDisposableWithEvent extends IDisposable {
     /**
-     * Event listener to get notified when the marker gets disposed. Automatic disposal
-     * might happen for a marker, that got invalidated by scrolling out or removal of
-     * a line from the buffer.
+     * Event listener to get notified when this gets disposed.
      */
     onDispose: IEvent<void>;
+
+    /**
+     * Whether this is disposed.
+     */
+    readonly isDisposed: boolean;
+  }
+
+  /**
+   * Represents a decoration in the terminal that is associated with a particular marker and DOM element.
+   */
+  export interface IDecoration extends IDisposableWithEvent {
+    /*
+     * The marker for the decoration in the terminal.
+     */
+    readonly marker: IMarker;
+
+    /**
+     * An event fired when the decoration
+     * is rendered, returns the dom element
+     * associated with the decoration.
+     */
+    readonly onRender: IEvent<HTMLElement>;
+
+    /**
+     * The element that the decoration is rendered to. This will be undefined
+     * until it is rendered for the first time by {@link IDecoration.onRender}.
+     * that.
+     */
+    element: HTMLElement | undefined;
+
+    /**
+     * The options for the overview ruler that can be updated.
+     * This will only take effect when {@link IDecorationOptions.overviewRulerOptions}
+     * were provided initially.
+     */
+     overviewRulerOptions?: Pick<IDecorationOverviewRulerOptions, 'color'>;
+  }
+
+
+  /**
+   * Overview ruler decoration options
+   */
+  interface IDecorationOverviewRulerOptions {
+    color: string;
+    position?: 'left' | 'center' | 'right' | 'full';
+  }
+
+  /*
+   * Options that define the presentation of the decoration.
+   */
+  export interface IDecorationOptions {
+    /**
+     * The line in the terminal where
+     * the decoration will be displayed
+     */
+    readonly marker: IMarker;
+
+    /*
+     * Where the decoration will be anchored -
+     * defaults to the left edge
+     */
+    readonly anchor?: 'right' | 'left';
+
+    /**
+     * The x position offset relative to the anchor
+     */
+    readonly x?: number;
+
+
+    /**
+     * The width of the decoration in cells, defaults to 1.
+     */
+    readonly width?: number;
+
+    /**
+     * The height of the decoration in cells, defaults to 1.
+     */
+    readonly height?: number;
+
+    /**
+     * When defined, renders the decoration in the overview ruler to the right
+     * of the terminal. {@link ITerminalOptions.overviewRulerWidth} must be set
+     * in order to see the overview ruler.
+     * @param color The color of the decoration.
+     * @param position The position of the decoration.
+     */
+    overviewRulerOptions?: IDecorationOverviewRulerOptions
   }
 
   /**
@@ -863,12 +956,21 @@ declare module '@daiyam/xterm-tab' {
      * @param cursorYOffset The y position offset of the marker from the cursor.
      * @returns The new marker or undefined.
      */
-    registerMarker(cursorYOffset: number): IMarker | undefined;
+    registerMarker(cursorYOffset?: number): IMarker | undefined;
 
     /**
      * @deprecated use `registerMarker` instead.
      */
     addMarker(cursorYOffset: number): IMarker | undefined;
+
+    /**
+     * (EXPERIMENTAL) Adds a decoration to the terminal using
+     *  @param decorationOptions, which takes a marker and an optional anchor,
+     *  width, height, and x offset from the anchor. Returns the decoration or
+     *  undefined if the alt buffer is active or the marker has already been disposed of.
+     *  @throws when options include a negative x offset.
+     */
+    registerDecoration(decorationOptions: IDecorationOptions): IDecoration | undefined;
 
     /**
      * Gets whether the terminal has an active selection.

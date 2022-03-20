@@ -5,5 +5,20 @@
  "main": "lib-headless/xterm-headless.js",
  "types": "typings/xterm-headless.d.ts",
  "repository": "https://github.com/daiyam/xterm-tab",
- "license": "MIT"
+ "license": "MIT",
+ "keywords": [
+  "cli",
+  "command-line",
+  "console",
+  "pty",
+  "shell",
+  "ssh",
+  "styles",
+  "terminal-emulator",
+  "terminal",
+  "tty",
+  "vt100",
+  "webgl",
+  "xterm"
+ ]
 }

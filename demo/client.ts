@@ -147,8 +147,11 @@ if (document.location.pathname === '/test') {
   createTerminal();
   document.getElementById('dispose').addEventListener('click', disposeRecreateButtonHandler);
   document.getElementById('serialize').addEventListener('click', serializeButtonHandler);
+  document.getElementById('htmlserialize').addEventListener('click', htmlSerializeButtonHandler);
   document.getElementById('custom-glyph').addEventListener('click', writeCustomGlyphHandler);
   document.getElementById('load-test').addEventListener('click', loadTest);
+  document.getElementById('add-decoration').addEventListener('click', addDecoration);
+  document.getElementById('add-overview-ruler').addEventListener('click', addOverviewRuler);
 }
 
 function createTerminal(): void {
@@ -447,6 +450,21 @@ function serializeButtonHandler(): void {
   }
 }
 
+function htmlSerializeButtonHandler(): void {
+  const output = addons.serialize.instance.serializeAsHTML();
+  document.getElementById('htmlserialize-output').innerText = output;
+
+  // Deprecated, but the most supported for now.
+  function listener(e: any) {
+    e.clipboardData.setData("text/html", output);
+    e.preventDefault();
+  }
+  document.addEventListener("copy", listener);
+  document.execCommand("copy");
+  document.removeEventListener("copy", listener);
+  document.getElementById("htmlserialize-output-result").innerText = "Copied to clipboard";
+}
+
 
 function writeCustomGlyphHandler() {
   term.write('\n\r');
@@ -525,3 +543,21 @@ function loadTest() {
     term._core._onData.fire('\x03');
   });
 }
+
+function addDecoration() {
+  term.options['overviewRulerWidth'] = 15;
+  const marker = term.addMarker(1);
+  const decoration = term.registerDecoration({ marker, overviewRulerOptions: { color: '#ef2929'} });
+  decoration.onRender((e) => e.style.backgroundColor = '#ef2929');
+}
+
+function addOverviewRuler() {
+  term.options['overviewRulerWidth'] = 15;
+  term.registerDecoration({marker: term.addMarker(1), overviewRulerOptions: { color: '#ef2929' }});
+  term.registerDecoration({marker: term.addMarker(3), overviewRulerOptions: { color: '#8ae234' }});
+  term.registerDecoration({marker: term.addMarker(5), overviewRulerOptions: { color: '#729fcf' }});
+  term.registerDecoration({marker: term.addMarker(7), overviewRulerOptions: { color: '#ef2929', position: 'left' }});
+  term.registerDecoration({marker: term.addMarker(7), overviewRulerOptions: { color: '#8ae234', position: 'center' }});
+  term.registerDecoration({marker: term.addMarker(7), overviewRulerOptions: { color: '#729fcf', position: 'right' }});
+}
+

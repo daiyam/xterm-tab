@@ -15,24 +15,6 @@ jobs:
           cache: yarn
       - run: yarn --frozen-lockfile
       - run: yarn test
-      - run: |
-          yarn package-headless
-
-          npm publish --access=public
-
-          cd headless
-          npm publish --access=public
-
-          cd ../addons/xterm-addon-search
-          npm publish --access=public
-
-          cd ../xterm-addon-serialize
-          npm publish --access=public
-
-          cd ../xterm-addon-unicode11
-          npm publish --access=public
-
-          cd ../xterm-addon-webgl
-          npm publish --access=public
+      - run: ./publish.sh
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
