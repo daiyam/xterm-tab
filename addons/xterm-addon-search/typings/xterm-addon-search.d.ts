@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal, ILinkMatcherOptions, IDisposable, ITerminalAddon } from '@daiyam/xterm-tab';
+import { Terminal, ITerminalAddon, IEvent } from '@daiyam/xterm-tab';
 
 declare module '@daiyam/xterm-tab-addon-search' {
   /**
@@ -32,6 +32,47 @@ declare module '@daiyam/xterm-tab-addon-search' {
      * `findNext`, not `findPrevious`.
      */
     incremental?: boolean;
+
+    /**
+     * When set, will highlight all instances of the word on search and show
+     * them in the overview ruler if it's enabled.
+     */
+    decorations?: ISearchDecorationOptions;
+  }
+
+  /**
+   * Options for showing decorations when searching.
+   */
+  interface ISearchDecorationOptions {
+    /**
+     * The background color of a match.
+     */
+    matchBackground?: string;
+
+    /**
+     * The border color of a match
+     */
+    matchBorder?: string;
+
+    /**
+     * The overview ruler color of a match.
+     */
+    matchOverviewRuler: string;
+
+    /**
+     * The background color for the currently active match.
+     */
+    activeMatchBackground?: string;
+
+    /**
+     * The border color of the currently active match.
+     */
+    activeMatchBorder?: string;
+
+    /**
+     * The overview ruler color of the currently active match.
+     */
+    activeMatchColorOverviewRuler: string;
   }
 
   /**
@@ -64,5 +105,19 @@ declare module '@daiyam/xterm-tab-addon-search' {
      * @param searchOptions The options for the search.
      */
     public findPrevious(term: string, searchOptions?: ISearchOptions): boolean;
+
+    /**
+     * Clears the decorations and selection
+     */
+    public clearDecorations(): void;
+
+    /**
+     * When decorations are enabled, fires when
+     * the search results or the selected result changes,
+     * returning undefined if there are no matches.
+     * -1 is returned for resultCount/resultIndex when the threshold of 2k results
+     * is exceeded and decorations are disposed of.
+     */
+    readonly onDidChangeResults: IEvent<{ resultIndex: number, resultCount: number } | undefined>;
   }
 }

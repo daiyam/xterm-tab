@@ -32,7 +32,11 @@ export class DecorationService extends Disposable implements IDecorationService 
     if (decoration) {
       decoration.onDispose(() => {
         if (decoration) {
-          this._decorations.splice(this._decorations.indexOf(decoration), 1);
+          const index = this._decorations.indexOf(decoration);
+          if (index >= 0) {
+            this._decorations.splice(this._decorations.indexOf(decoration), 1);
+            this._onDecorationRemoved.fire(decoration);
+          }
         }
       });
       this._decorations.push(decoration);
@@ -70,6 +74,10 @@ class Decoration extends Disposable implements IInternalDecoration {
     }
   }
   public override dispose(): void {
+    if (this._isDisposed) {
+      return;
+    }
+    this._isDisposed = true;
     this._onDispose.fire();
     super.dispose();
   }
