@@ -1,7 +1,7 @@
 {
   "name": "@daiyam/xterm-tab",
   "description": "Full xterm terminal, in your browser",
-  "version": "4.18.0-d.0",
+  "version": "4.19.0-d.0",
   "main": "lib/xterm.js",
   "style": "css/xterm.css",
   "types": "typings/xterm.d.ts",
@@ -41,7 +41,7 @@
     "test:dev": "cross-env NODE_PATH='./out' mocha",
     "build": "tsc -b ./tsconfig.all.json",
     "prepare": "npm run setup",
-    "release": "release-it",
+    "release": "release-it --no-increment",
     "setup": "npm run build",
     "presetup": "node ./bin/install-addons.js",
     "prepublishOnly": "npm run package",

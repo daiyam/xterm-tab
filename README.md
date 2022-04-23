@@ -9,6 +9,10 @@ What is it?
 
 `xterm-tab` is a temporary fork of [xterm.js](https://github.com/xtermjs/xterm.js) with the support of the tab character.
 
+```sh
+printf "\033[48;5;1mred\t - \tred\033[0mnormal\n"
+```
+
 Where is it used?
 -----------------
 
