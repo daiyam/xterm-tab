@@ -45,12 +45,12 @@ declare module '@daiyam/xterm-tab-addon-search' {
    */
   interface ISearchDecorationOptions {
     /**
-     * The background color of a match.
+     * The background color of a match, this must use #RRGGBB format.
      */
     matchBackground?: string;
 
     /**
-     * The border color of a match
+     * The border color of a match.
      */
     matchBorder?: string;
 
@@ -60,7 +60,7 @@ declare module '@daiyam/xterm-tab-addon-search' {
     matchOverviewRuler: string;
 
     /**
-     * The background color for the currently active match.
+     * The background color for the currently active match, this must use #RRGGBB format.
      */
     activeMatchBackground?: string;
 
@@ -112,10 +112,17 @@ declare module '@daiyam/xterm-tab-addon-search' {
     public clearDecorations(): void;
 
     /**
+     * Clears the active result decoration, this decoration is applied on top of the selection so
+     * removing it will reveal the selection underneath. This is intended to be called on the search
+     * textarea's `blur` event.
+     */
+    public clearActiveDecoration(): void;
+
+    /**
      * When decorations are enabled, fires when
-     * the search results or the selected result changes,
-     * returning undefined if there are no matches.
-     * -1 is returned for resultCount/resultIndex when the threshold of 2k results
+     * the search results change.
+     * @returns -1 if there are no matches and
+     * @returns undefined when the threshold of 1k results
      * is exceeded and decorations are disposed of.
      */
     readonly onDidChangeResults: IEvent<{ resultIndex: number, resultCount: number } | undefined>;

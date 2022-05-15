@@ -82,7 +82,7 @@ export class Linkifier2 extends Disposable implements ILinkifier2 {
     for (let i = 0; i < composedPath.length; i++) {
       const target = composedPath[i];
       // Hit Terminal.element, break and continue
-      if (target.classList.contains('xterm')) {
+      if (target.classList.contains('@daiyam/xterm-tab')) {
         break;
       }
       // It's a hover, don't respect hover event

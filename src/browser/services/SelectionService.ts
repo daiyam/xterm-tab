@@ -778,6 +778,7 @@ export class SelectionService extends Disposable implements ISelectionService {
     this._model.selectionStart = [col, row];
     this._model.selectionStartLength = length;
     this.refresh();
+    this._fireEventIfSelectionChanged();
   }
 
   public rightClickSelect(ev: MouseEvent): void {
