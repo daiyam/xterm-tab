@@ -51,7 +51,7 @@ export const DEFAULT_OPTIONS: Readonly<ITerminalOptions> = {
   wordSeparator: ' \t()[]{}\',"`',
   altClickMovesCursor: true,
   convertEol: false,
-  termName: '@daiyam/xterm-tab',
+  termName: 'xterm',
   cancelEvents: false,
   overviewRulerWidth: undefined
 };
