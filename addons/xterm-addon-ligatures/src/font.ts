@@ -3,8 +3,7 @@
  * @license MIT
  */
 
-import { FontList } from 'font-finder';
-import { Font, loadBuffer, loadFile } from 'font-ligatures';
+import { Font, loadBuffer } from 'font-ligatures';
 
 import parse from './parse';
 
@@ -24,7 +23,7 @@ interface IFontAccessNavigator {
   };
 }
 
-let fontsPromise: Promise<FontList | Record<string, IFontMetadata[]>> | undefined = undefined;
+let fontsPromise: Promise<Record<string, IFontMetadata[]>> | undefined = undefined;
 
 /**
  * Loads the font ligature wrapper for the specified font family if it could be
@@ -65,12 +64,20 @@ export default async function load(fontFamily: string, cacheSize: number): Promi
         console.error(err.name, err.message);
       }
     }
-    // Node environment or no font access API
-    else {
+    // Latest proposal https://bugs.chromium.org/p/chromium/issues/detail?id=1312603
+    else if (typeof process !== 'object' && 'queryLocalFonts' in window) {
+      const fonts: Record<string, IFontMetadata[]> = {};
       try {
-        fontsPromise = (await import('font-finder')).list();
-      } catch (err) {
-        // No-op
+        const fontsIterator = await (window as any).queryLocalFonts();
+        for (const metadata of fontsIterator) {
+          if (!fonts.hasOwnProperty(metadata.family)) {
+            fonts[metadata.family] = [];
+          }
+          fonts[metadata.family].push(metadata);
+        }
+        fontsPromise = Promise.resolve(fonts);
+      } catch (err: any) {
+        console.error(err.name, err.message);
       }
     }
     if (!fontsPromise) {
@@ -90,9 +97,11 @@ export default async function load(fontFamily: string, cacheSize: number): Promi
     if (fonts.hasOwnProperty(family) && fonts[family].length > 0) {
       const font = fonts[family][0];
       if ('blob' in font) {
-        return loadBuffer(await (await font.blob()).arrayBuffer(), { cacheSize });
+        const bytes = await font.blob();
+        const buffer = await bytes.arrayBuffer();
+        return loadBuffer(buffer, { cacheSize });
       }
-      return await loadFile(font.path, { cacheSize });
+      return undefined;
     }
   }
 

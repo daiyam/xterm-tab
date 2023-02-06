@@ -443,8 +443,8 @@ export class SerializeAddon implements ITerminalAddon {
     const selection = this._terminal?.getSelectionPosition();
     if (selection !== undefined) {
       return handler.serialize({
-        start: { x: selection.startRow, y: selection.startColumn },
-        end: { x: selection.endRow, y: selection.endColumn }
+        start: { x: selection.start.y, y: selection.start.x },
+        end: { x: selection.end.y, y: selection.end.x }
       });
     }
 
@@ -544,7 +544,7 @@ export class HTMLSerializeHandler extends BaseSerializeHandler {
     super(buffer);
 
     // https://github.com/xtermjs/xterm.js/issues/3601
-    this._colors = (_terminal as any)._core._colorManager.colors;
+    this._colors = (_terminal as any)._core._themeService.colors;
   }
 
   private _padStart(target: string, targetLength: number, padString: string): string {

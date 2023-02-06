@@ -18,7 +18,12 @@ npm publish --access=public
 cd headless
 npm publish --access=public
 
-cd ../addons/xterm-addon-search
+cd ../addons/xterm-addon-canvas
+if [[ -z $( should_publish ) ]]; then
+  npm publish --access=public
+fi
+
+cd ../xterm-addon-search
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi

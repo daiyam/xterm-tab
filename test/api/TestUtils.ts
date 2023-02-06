@@ -5,7 +5,7 @@
 
 import * as playwright from 'playwright';
 import deepEqual = require('deep-equal');
-import { ITerminalOptions } from '@daiyam/xterm-tab';
+import { ITerminalInitOnlyOptions, ITerminalOptions } from '@daiyam/xterm-tab';
 import { deepStrictEqual, fail } from 'assert';
 
 export async function pollFor<T>(page: playwright.Page, evalOrFn: string | (() => Promise<T>), val: T, preFn?: () => Promise<void>, maxDuration?: number): Promise<void> {
@@ -43,14 +43,10 @@ export async function timeout(ms: number): Promise<void> {
   return new Promise<void>(r => setTimeout(r, ms));
 }
 
-export async function openTerminal(page: playwright.Page, options: ITerminalOptions = {}): Promise<void> {
-  await page.evaluate(`window.term = new Terminal(${JSON.stringify(options)})`);
+export async function openTerminal(page: playwright.Page, options: ITerminalOptions & ITerminalInitOnlyOptions = {}): Promise<void> {
+  await page.evaluate(`window.term = new Terminal(${JSON.stringify({ allowProposedApi: true, ...options })})`);
   await page.evaluate(`window.term.open(document.querySelector('#terminal-container'))`);
-  if (options.rendererType === 'dom') {
-    await page.waitForSelector('.xterm-rows');
-  } else {
-    await page.waitForSelector('.xterm-text-layer');
-  }
+  await page.waitForSelector('.xterm-rows');
 }
 
 export function getBrowserType(): playwright.BrowserType<playwright.WebKitBrowser> | playwright.BrowserType<playwright.ChromiumBrowser> | playwright.BrowserType<playwright.FirefoxBrowser> {
@@ -68,7 +64,7 @@ export function getBrowserType(): playwright.BrowserType<playwright.WebKitBrowse
   return browserType;
 }
 
-export function launchBrowser() {
+export function launchBrowser(): Promise<playwright.Browser> {
   const browserType = getBrowserType();
   const options: Record<string, unknown> = {
     headless: process.argv.includes('--headless')

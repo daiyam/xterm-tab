@@ -12,6 +12,21 @@ declare module '@daiyam/xterm-tab-addon-webgl' {
   export class WebglAddon implements ITerminalAddon {
     public textureAtlas?: HTMLCanvasElement;
 
+    /**
+     * An event that is fired when the renderer loses its canvas context.
+     */
+    public readonly onContextLoss: IEvent<void>;
+
+    /**
+     * An event that is fired when the texture atlas of the renderer changes.
+     */
+    public readonly onChangeTextureAtlas: IEvent<HTMLCanvasElement>;
+
+    /**
+     * An event that is fired when the a new page is added to the texture atlas.
+     */
+    public readonly onAddTextureAtlasCanvas: IEvent<HTMLCanvasElement>;
+
     constructor(preserveDrawingBuffer?: boolean);
 
     /**
@@ -29,10 +44,5 @@ declare module '@daiyam/xterm-tab-addon-webgl' {
      * Clears the terminal's texture atlas and triggers a redraw.
      */
     public clearTextureAtlas(): void;
-
-    /**
-     * Fired when the WebglRenderer loses context
-     */
-    public get onContextLoss(): IEvent<void>;
   }
 }

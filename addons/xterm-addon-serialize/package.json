@@ -1,6 +1,6 @@
 {
   "name": "@daiyam/xterm-tab-addon-serialize",
-  "version": "0.7.0-beta.12.0",
+  "version": "0.9.0",
   "author": {
     "name": "The xterm.js authors",
     "url": "https://xtermjs.org/"
@@ -24,6 +24,6 @@
     "benchmark-eval": "NODE_PATH=../../out:./out:./out-benchmark/ ../../node_modules/.bin/xterm-benchmark -r 5 -c benchmark/benchmark.json --eval out-benchmark/benchmark/*benchmark.js"
   },
   "peerDependencies": {
-    "@daiyam/xterm-tab": "^4.0.0"
+    "@daiyam/xterm-tab": "^5.0.0"
   }
 }

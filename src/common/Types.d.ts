@@ -9,6 +9,7 @@ import { IDeleteEvent, IInsertEvent } from 'common/CircularList';
 import { IParams } from 'common/parser/Types';
 import { ICoreMouseService, ICoreService, IOptionsService, IUnicodeService } from 'common/services/Services';
 import { IBufferSet } from 'common/buffer/Types';
+import { Attributes, UnderlineStyle } from 'common/buffer/Constants';
 
 export interface ICoreTerminal {
   coreMouseService: ICoreMouseService;
@@ -35,6 +36,8 @@ export interface ITerminalOptions extends IPublicTerminalOptions {
   termName?: string;
 }
 
+export type CursorStyle = 'block' | 'underline' | 'bar';
+
 export type XtermListener = (...args: any[]) => void;
 
 /**
@@ -50,6 +53,7 @@ export interface IKeyboardEvent {
   keyCode: number;
   key: string;
   type: string;
+  code: string;
 }
 
 export interface IScrollEvent {
@@ -110,16 +114,43 @@ export interface IColor {
 export type IColorRGB = [number, number, number];
 
 export interface IExtendedAttrs {
-  underlineStyle: number;
+  ext: number;
+  underlineStyle: UnderlineStyle;
   underlineColor: number;
+  urlId: number;
   clone(): IExtendedAttrs;
   isEmpty(): boolean;
 }
 
-/** Attribute data */
+/**
+ * Tracks the current hyperlink. Since these are treated as extended attirbutes, these get passed on
+ * to the linkifier when anything is printed. Doing it this way ensures that even when the cursor
+ * moves around unexpectedly the link is tracked, as opposed to using a start position and
+ * finalizing it at the end.
+ */
+export interface IOscLinkData {
+  id?: string;
+  uri: string;
+}
+
+/**
+ * An object that represents all attributes of a cell.
+ */
 export interface IAttributeData {
+  /**
+   * "fg" is a 32-bit unsigned integer that stores the foreground color of the cell in the 24 least
+   * significant bits and additional flags in the remaining 8 bits.
+   */
   fg: number;
+  /**
+   * "bg" is a 32-bit unsigned integer that stores the background color of the cell in the 24 least
+   * significant bits and additional flags in the remaining 8 bits.
+   */
   bg: number;
+  /**
+   * "extended", aka "ext", stores extended attributes beyond those available in fg and bg. This
+   * data is optional on a cell and encodes less common data.
+   */
   extended: IExtendedAttrs;
 
   clone(): IAttributeData;
@@ -133,9 +164,19 @@ export interface IAttributeData {
   isItalic(): number;
   isDim(): number;
   isStrikethrough(): number;
+  isProtected(): number;
 
-  // color modes
+  /**
+   * The color mode of the foreground color which determines how to decode {@link getFgColor},
+   * possible values include {@link Attributes.CM_DEFAULT}, {@link Attributes.CM_P16},
+   * {@link Attributes.CM_P256} and {@link Attributes.CM_RGB}.
+   */
   getFgColorMode(): number;
+  /**
+   * The color mode of the background color which determines how to decode {@link getBgColor},
+   * possible values include {@link Attributes.CM_DEFAULT}, {@link Attributes.CM_P16},
+   * {@link Attributes.CM_P256} and {@link Attributes.CM_RGB}.
+   */
   getBgColorMode(): number;
   isFgRGB(): boolean;
   isBgRGB(): boolean;
@@ -145,8 +186,15 @@ export interface IAttributeData {
   isBgDefault(): boolean;
   isAttributeDefault(): boolean;
 
-  // colors
+  /**
+   * Gets an integer representation of the foreground color, how to decode the color depends on the
+   * color mode {@link getFgColorMode}.
+   */
   getFgColor(): number;
+  /**
+   * Gets an integer representation of the background color, how to decode the color depends on the
+   * color mode {@link getBgColorMode}.
+   */
   getBgColor(): number;
 
   // extended attrs
@@ -186,9 +234,10 @@ export interface IBufferLine {
   addCodepointToCell(index: number, codePoint: number): void;
   insertCells(pos: number, n: number, ch: ICellData, eraseAttr?: IAttributeData): void;
   deleteCells(pos: number, n: number, fill: ICellData, eraseAttr?: IAttributeData): void;
-  replaceCells(start: number, end: number, fill: ICellData, eraseAttr?: IAttributeData): void;
-  resize(cols: number, fill: ICellData): void;
-  fill(fillCellData: ICellData): void;
+  replaceCells(start: number, end: number, fill: ICellData, eraseAttr?: IAttributeData, respectProtect?: boolean): void;
+  resize(cols: number, fill: ICellData): boolean;
+  cleanupMemory(): number;
+  fill(fillCellData: ICellData, respectProtect?: boolean): void;
   copyFrom(line: IBufferLine): void;
   clone(): IBufferLine;
   getTrimmedLength(): number;
@@ -266,6 +315,9 @@ export interface ICoreMouseEvent {
   col: number;
   /** row (zero based). */
   row: number;
+  /** xy pixel positions. */
+  x: number;
+  y: number;
   /**
    * Button the action occured. Due to restrictions of the tracking protocols
    * it is not possible to report multiple buttons at once.

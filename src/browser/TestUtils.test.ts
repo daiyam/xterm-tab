@@ -3,19 +3,22 @@
  * @license MIT
  */
 
-import { IDisposable, IMarker, ISelectionPosition, ILinkProvider, IDecorationOptions, IDecoration } from '@daiyam/xterm-tab';
+import { IDisposable, IMarker, ILinkProvider, IDecorationOptions, IDecoration } from '@daiyam/xterm-tab';
 import { IEvent, EventEmitter } from 'common/EventEmitter';
-import { ICharacterJoinerService, ICharSizeService, IMouseService, IRenderService, ISelectionService } from 'browser/services/Services';
-import { IRenderDimensions, IRenderer, IRequestRedrawEvent } from 'browser/renderer/Types';
-import { IColorSet, ILinkMatcherOptions, ITerminal, ILinkifier, ILinkifier2, IBrowser, IViewport, IColorManager, ICompositionHelper, CharacterJoinerHandler } from 'browser/Types';
-import { IBuffer, IBufferStringIterator, IBufferSet } from 'common/buffer/Types';
-import { IBufferLine, ICellData, IAttributeData, ICircularList, XtermListener, ICharset, ITerminalOptions } from 'common/Types';
+import { ICharacterJoinerService, ICharSizeService, ICoreBrowserService, IMouseService, IRenderService, ISelectionService, IThemeService } from 'browser/services/Services';
+import { IRenderDimensions, IRenderer, IRequestRedrawEvent } from 'browser/renderer/shared/Types';
+import { IColorSet, ITerminal, ILinkifier2, IBrowser, IViewport, ICompositionHelper, CharacterJoinerHandler, IBufferRange, ReadonlyColorSet } from 'browser/Types';
+import { IBuffer, IBufferSet } from 'common/buffer/Types';
+import { IBufferLine, ICellData, IAttributeData, ICircularList, XtermListener, ICharset, ITerminalOptions, ColorIndex } from 'common/Types';
 import { Buffer } from 'common/buffer/Buffer';
 import * as Browser from 'common/Platform';
 import { Terminal } from 'browser/Terminal';
 import { IUnicodeService, IOptionsService, ICoreService, ICoreMouseService } from 'common/services/Services';
 import { IFunctionIdentifier, IParams } from 'common/parser/Types';
 import { AttributeData } from 'common/buffer/AttributeData';
+import { ISelectionRedrawRequestEvent, ISelectionRequestScrollLinesEvent } from 'browser/selection/Types';
+import { css } from 'common/Color';
+import { createRenderDimensions } from 'browser/renderer/shared/RendererUtils';
 
 export class TestTerminal extends Terminal {
   public get curAttrData(): IAttributeData { return (this as any)._inputHandler._curAttrData; }
@@ -30,6 +33,7 @@ export class MockTerminal implements ITerminal {
   public onBlur!: IEvent<void>;
   public onFocus!: IEvent<void>;
   public onA11yChar!: IEvent<string>;
+  public onWriteParsed!: IEvent<void>;
   public onA11yTab!: IEvent<number>;
   public onCursorMove!: IEvent<void>;
   public onLineFeed!: IEvent<void>;
@@ -39,6 +43,7 @@ export class MockTerminal implements ITerminal {
   public onTitleChange!: IEvent<string>;
   public onBell!: IEvent<void>;
   public onScroll!: IEvent<number>;
+  public onWillOpen!: IEvent<HTMLElement>;
   public onKey!: IEvent<{ key: string, domEvent: KeyboardEvent }>;
   public onRender!: IEvent<{ start: number, end: number }>;
   public onResize!: IEvent<{ cols: number, rows: number }>;
@@ -93,12 +98,6 @@ export class MockTerminal implements ITerminal {
   public registerOscHandler(ident: number, callback: (data: string) => boolean | Promise<boolean>): IDisposable {
     throw new Error('Method not implemented.');
   }
-  public registerLinkMatcher(regex: RegExp, handler: (event: MouseEvent, uri: string) => boolean | void, options?: ILinkMatcherOptions): number {
-    throw new Error('Method not implemented.');
-  }
-  public deregisterLinkMatcher(matcherId: number): void {
-    throw new Error('Method not implemented.');
-  }
   public registerLinkProvider(linkProvider: ILinkProvider): IDisposable {
     throw new Error('Method not implemented.');
   }
@@ -111,7 +110,7 @@ export class MockTerminal implements ITerminal {
   public getSelection(): string {
     throw new Error('Method not implemented.');
   }
-  public getSelectionPosition(): ISelectionPosition | undefined {
+  public getSelectionPosition(): IBufferRange | undefined {
     throw new Error('Method not implemented.');
   }
   public clearSelection(): void {
@@ -141,15 +140,14 @@ export class MockTerminal implements ITerminal {
   public write(data: string): void {
     throw new Error('Method not implemented.');
   }
-  public writeUtf8(data: Uint8Array): void {
+  public getBufferElements(startLine: number, endLine?: number | undefined): { bufferElements: HTMLElement[], cursorElement?: HTMLElement | undefined } {
     throw new Error('Method not implemented.');
   }
   public bracketedPasteMode!: boolean;
   public renderer!: IRenderer;
-  public linkifier!: ILinkifier;
   public linkifier2!: ILinkifier2;
   public isFocused!: boolean;
-  public options: ITerminalOptions = {};
+  public options!: Required<ITerminalOptions>;
   public element!: HTMLElement;
   public screenElement!: HTMLElement;
   public rowContainer!: HTMLElement;
@@ -248,12 +246,6 @@ export class MockBuffer implements IBuffer {
   public getBlankLine(attr: IAttributeData, isWrapped?: boolean): IBufferLine {
     return Buffer.prototype.getBlankLine.apply(this, arguments as any);
   }
-  public stringIndexToBufferIndex(lineIndex: number, stringIndex: number): number[] {
-    return Buffer.prototype.stringIndexToBufferIndex.apply(this, arguments as any);
-  }
-  public iterator(trimRight: boolean, startIndex?: number, endIndex?: number): IBufferStringIterator {
-    return Buffer.prototype.iterator.apply(this, arguments as any);
-  }
   public getNullCell(attr?: IAttributeData): ICellData {
     throw new Error('Method not implemented.');
   }
@@ -263,7 +255,7 @@ export class MockBuffer implements IBuffer {
   public clearMarkers(y: number): void {
     throw new Error('Method not implemented.');
   }
-  public clearAllMarkers(excludeY: number): void {
+  public clearAllMarkers(): void {
     throw new Error('Method not implemented.');
   }
 }
@@ -275,7 +267,6 @@ export class MockRenderer implements IRenderer {
   public dispose(): void {
     throw new Error('Method not implemented.');
   }
-  public colorManager!: IColorManager;
   public on(type: string, listener: XtermListener): void {
     throw new Error('Method not implemented.');
   }
@@ -289,20 +280,17 @@ export class MockRenderer implements IRenderer {
     throw new Error('Method not implemented.');
   }
   public dimensions!: IRenderDimensions;
-  public setColors(colors: IColorSet): void {
-    throw new Error('Method not implemented.');
-  }
   public registerDecoration(decorationOptions: IDecorationOptions): IDecoration {
     throw new Error('Method not implemented.');
   }
-  public onResize(cols: number, rows: number): void { }
-  public onCharSizeChanged(): void { }
-  public onBlur(): void { }
-  public onFocus(): void { }
-  public onSelectionChanged(start: [number, number], end: [number, number]): void { }
-  public onCursorMove(): void { }
-  public onOptionsChanged(): void { }
-  public onDevicePixelRatioChange(): void { }
+  public handleResize(cols: number, rows: number): void { }
+  public handleCharSizeChanged(): void { }
+  public handleBlur(): void { }
+  public handleFocus(): void { }
+  public handleSelectionChanged(start: [number, number], end: [number, number]): void { }
+  public handleCursorMove(): void { }
+  public handleOptionsChanged(): void { }
+  public handleDevicePixelRatioChange(): void { }
   public clear(): void { }
   public renderRows(start: number, end: number): void { }
 }
@@ -312,20 +300,23 @@ export class MockViewport implements IViewport {
     throw new Error('Method not implemented.');
   }
   public scrollBarWidth: number = 0;
-  public onThemeChange(colors: IColorSet): void {
+  public handleThemeChange(colors: IColorSet): void {
     throw new Error('Method not implemented.');
   }
-  public onWheel(ev: WheelEvent): boolean {
+  public handleWheel(ev: WheelEvent): boolean {
     throw new Error('Method not implemented.');
   }
-  public onTouchStart(ev: TouchEvent): void {
+  public handleTouchStart(ev: TouchEvent): void {
     throw new Error('Method not implemented.');
   }
-  public onTouchMove(ev: TouchEvent): boolean {
+  public handleTouchMove(ev: TouchEvent): boolean {
     throw new Error('Method not implemented.');
   }
   public syncScrollArea(): void { }
   public getLinesScrolled(ev: WheelEvent): number {
+    throw new Error('Method not implemented.');
+  }
+  public getBufferElements(startLine: number, endLine?: number | undefined): { bufferElements: HTMLElement[], cursorElement?: HTMLElement | undefined } {
     throw new Error('Method not implemented.');
   }
 }
@@ -351,6 +342,15 @@ export class MockCompositionHelper implements ICompositionHelper {
   }
 }
 
+export class MockCoreBrowserService implements ICoreBrowserService {
+  public serviceBrand: undefined;
+  public isFocused: boolean = true;
+  public get window(): Window & typeof globalThis {
+    throw Error('Window object not available in tests');
+  }
+  public dpr: number = 1;
+}
+
 export class MockCharSizeService implements ICharSizeService {
   public serviceBrand: undefined;
   public get hasValidSize(): boolean { return this.width > 0 && this.height > 0; }
@@ -365,7 +365,7 @@ export class MockMouseService implements IMouseService {
     throw new Error('Not implemented');
   }
 
-  public getRawByteCoords(event: MouseEvent, element: HTMLElement, colCount: number, rowCount: number): { x: number, y: number } | undefined {
+  public getMouseReportCoords(event: MouseEvent, element: HTMLElement): { col: number, row: number, x: number, y: number } | undefined {
     throw new Error('Not implemented');
   }
 }
@@ -373,24 +373,14 @@ export class MockMouseService implements IMouseService {
 export class MockRenderService implements IRenderService {
   public serviceBrand: undefined;
   public onDimensionsChange: IEvent<IRenderDimensions> = new EventEmitter<IRenderDimensions>().event;
-  public onRenderedBufferChange: IEvent<{ start: number, end: number }, void> = new EventEmitter<{ start: number, end: number }>().event;
+  public onRenderedViewportChange: IEvent<{ start: number, end: number }, void> = new EventEmitter<{ start: number, end: number }>().event;
   public onRender: IEvent<{ start: number, end: number }, void> = new EventEmitter<{ start: number, end: number }>().event;
   public onRefreshRequest: IEvent<{ start: number, end: number}, void> = new EventEmitter<{ start: number, end: number }>().event;
-  public dimensions: IRenderDimensions = {
-    scaledCharWidth: 0,
-    scaledCharHeight: 0,
-    scaledCellWidth: 0,
-    scaledCellHeight: 0,
-    scaledCharLeft: 0,
-    scaledCharTop: 0,
-    scaledCanvasWidth: 0,
-    scaledCanvasHeight: 0,
-    canvasWidth: 0,
-    canvasHeight: 0,
-    actualCellWidth: 0,
-    actualCellHeight: 0
-  };
+  public dimensions: IRenderDimensions = createRenderDimensions();
   public refreshRows(start: number, end: number): void {
+    throw new Error('Method not implemented.');
+  }
+  public addRefreshCallback(callback: FrameRequestCallback): number {
     throw new Error('Method not implemented.');
   }
   public clearTextureAtlas(): void {
@@ -399,34 +389,31 @@ export class MockRenderService implements IRenderService {
   public resize(cols: number, rows: number): void {
     throw new Error('Method not implemented.');
   }
-  public changeOptions(): void {
+  public hasRenderer(): boolean {
     throw new Error('Method not implemented.');
   }
   public setRenderer(renderer: IRenderer): void {
     throw new Error('Method not implemented.');
   }
-  public setColors(colors: IColorSet): void {
+  public handleDevicePixelRatioChange(): void {
     throw new Error('Method not implemented.');
   }
-  public onDevicePixelRatioChange(): void {
+  public handleResize(cols: number, rows: number): void {
     throw new Error('Method not implemented.');
   }
-  public onResize(cols: number, rows: number): void {
+  public handleCharSizeChanged(): void {
     throw new Error('Method not implemented.');
   }
-  public onCharSizeChanged(): void {
+  public handleBlur(): void {
     throw new Error('Method not implemented.');
   }
-  public onBlur(): void {
+  public handleFocus(): void {
     throw new Error('Method not implemented.');
   }
-  public onFocus(): void {
+  public handleSelectionChanged(start: [number, number], end: [number, number], columnSelectMode: boolean): void {
     throw new Error('Method not implemented.');
   }
-  public onSelectionChanged(start: [number, number], end: [number, number], columnSelectMode: boolean): void {
-    throw new Error('Method not implemented.');
-  }
-  public onCursorMove(): void {
+  public handleCursorMove(): void {
     throw new Error('Method not implemented.');
   }
   public clear(): void {
@@ -451,4 +438,90 @@ export class MockCharacterJoinerService implements ICharacterJoinerService {
   public getJoinedCharacters(row: number): [number, number][] {
     return [];
   }
+}
+
+export class MockSelectionService implements ISelectionService {
+  public serviceBrand: undefined;
+  public selectionText: string = '';
+  public hasSelection: boolean = false;
+  public selectionStart: [number, number] | undefined;
+  public selectionEnd: [number, number] | undefined;
+  public onLinuxMouseSelection = new EventEmitter<string>().event;
+  public onRequestRedraw = new EventEmitter<ISelectionRedrawRequestEvent>().event;
+  public onRequestScrollLines = new EventEmitter<ISelectionRequestScrollLinesEvent>().event;
+  public onSelectionChange = new EventEmitter<void>().event;
+  public disable(): void {
+    throw new Error('Method not implemented.');
+  }
+  public enable(): void {
+    throw new Error('Method not implemented.');
+  }
+  public reset(): void {
+    throw new Error('Method not implemented.');
+  }
+  public setSelection(row: number, col: number, length: number): void {
+    throw new Error('Method not implemented.');
+  }
+  public selectAll(): void {
+    throw new Error('Method not implemented.');
+  }
+  public selectLines(start: number, end: number): void {
+    throw new Error('Method not implemented.');
+  }
+  public clearSelection(): void {
+    throw new Error('Method not implemented.');
+  }
+  public rightClickSelect(event: MouseEvent): void {
+    throw new Error('Method not implemented.');
+  }
+  public shouldColumnSelect(event: MouseEvent | KeyboardEvent): boolean {
+    throw new Error('Method not implemented.');
+  }
+  public shouldForceSelection(event: MouseEvent): boolean {
+    throw new Error('Method not implemented.');
+  }
+  public refresh(isLinuxMouseSelection?: boolean): void {
+    throw new Error('Method not implemented.');
+  }
+  public handleMouseDown(event: MouseEvent): void {
+    throw new Error('Method not implemented.');
+  }
+  public isCellInSelection(x: number, y: number): boolean {
+    return false;
+  }
+}
+
+export class MockThemeService implements IThemeService{
+  public serviceBrand: undefined;
+  public onChangeColors = new EventEmitter<ReadonlyColorSet>().event;
+  public restoreColor(slot?: ColorIndex | undefined): void {
+    throw new Error('Method not implemented.');
+  }
+  public modifyColors(callback: (colors: IColorSet) => void): void {
+    throw new Error('Method not implemented.');
+  }
+  public colors: ReadonlyColorSet = {
+    background: css.toColor('#010101'),
+    foreground: css.toColor('#020202'),
+    ansi: [
+      // dark:
+      css.toColor('#2e3436'),
+      css.toColor('#cc0000'),
+      css.toColor('#4e9a06'),
+      css.toColor('#c4a000'),
+      css.toColor('#3465a4'),
+      css.toColor('#75507b'),
+      css.toColor('#06989a'),
+      css.toColor('#d3d7cf'),
+      // bright:
+      css.toColor('#555753'),
+      css.toColor('#ef2929'),
+      css.toColor('#8ae234'),
+      css.toColor('#fce94f'),
+      css.toColor('#729fcf'),
+      css.toColor('#ad7fa8'),
+      css.toColor('#34e2e2'),
+      css.toColor('#eeeeec')
+    ]
+  } as any;
 }

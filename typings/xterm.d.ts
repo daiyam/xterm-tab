@@ -21,18 +21,12 @@ declare module '@daiyam/xterm-tab' {
   export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'off';
 
   /**
-   * A string representing a renderer type.
-   */
-  export type RendererType = 'dom' | 'canvas';
-
-  /**
-   * An object containing start up options for the terminal.
+   * An object containing options for the terminal.
    */
   export interface ITerminalOptions {
     /**
      * Whether to allow the use of proposed API. When false, any usage of APIs
-     * marked as experimental/proposed will throw an error. This defaults to
-     * true currently, but will change to false in v5.0.
+     * marked as experimental/proposed will throw an error. The default is false.
      */
     allowProposedApi?: boolean;
 
@@ -51,16 +45,6 @@ declare module '@daiyam/xterm-tab' {
     altClickMovesCursor?: boolean;
 
     /**
-     * A data uri of the sound to use for the bell when `bellStyle = 'sound'`.
-     */
-    bellSound?: string;
-
-    /**
-     * The type of the bell notification the terminal will use.
-     */
-    bellStyle?: 'none' | 'sound';
-
-    /**
      * When enabled the cursor will be set to the beginning of the next line
      * with every new line. This is equivalent to sending '\r\n' for each '\n'.
      * Normally the termios settings of the underlying PTY deals with the
@@ -69,11 +53,6 @@ declare module '@daiyam/xterm-tab' {
      * useful.
      */
     convertEol?: boolean;
-
-    /**
-     * The number of columns in the terminal.
-     */
-    cols?: number;
 
     /**
      * Whether the cursor blinks.
@@ -111,7 +90,7 @@ declare module '@daiyam/xterm-tab' {
     /**
      * The modifier key hold to multiply scroll speed.
      */
-    fastScrollModifier?: 'alt' | 'ctrl' | 'shift' | undefined;
+    fastScrollModifier?: 'none' | 'alt' | 'ctrl' | 'shift';
 
     /**
      * The scroll speed multiplier used for fast scrolling.
@@ -149,11 +128,17 @@ declare module '@daiyam/xterm-tab' {
     lineHeight?: number;
 
     /**
-     * The duration in milliseconds before link tooltip events fire when
-     * hovering on a link.
-     * @deprecated This will be removed when the link matcher API is removed.
+     * The handler for OSC 8 hyperlinks. Links will use the `confirm` browser
+     * API with a strongly worded warning if no link handler is set.
+     *
+     * When setting this, consider the security of users opening these links,
+     * at a minimum there should be a tooltip or a prompt when hovering or
+     * activating the link respectively. An example of what might be possible is
+     * a terminal app writing link in the form `javascript:...` that runs some
+     * javascript, a safe approach to prevent that is to validate the link
+     * starts with http(s)://.
      */
-    linkTooltipHoverDuration?: number;
+    linkHandler?: ILinkHandler | null;
 
     /**
      * What log level to use, this will log for all levels below and including
@@ -194,25 +179,10 @@ declare module '@daiyam/xterm-tab' {
     minimumContrastRatio?: number;
 
     /**
-     * The type of renderer to use, this allows using the fallback DOM renderer
-     * when canvas is too slow for the environment. The following features do
-     * not work when the DOM renderer is used:
-     *
-     * - Letter spacing
-     * - Cursor blink
-     */
-    rendererType?: RendererType;
-
-    /**
      * Whether to select the word under the cursor on right click, this is
      * standard behavior in a lot of macOS applications.
      */
     rightClickSelectsWord?: boolean;
-
-    /**
-     * The number of rows in the terminal.
-     */
-    rows?: number;
 
     /**
      * Whether screen reader support is enabled. When on this will expose
@@ -229,9 +199,21 @@ declare module '@daiyam/xterm-tab' {
     scrollback?: number;
 
     /**
+     * Whether to scroll to the bottom whenever there is some user input. The
+     * default is true.
+     */
+    scrollOnUserInput?: boolean;
+
+    /**
      * The scrolling speed multiplier used for adjusting normal scrolling speed.
      */
     scrollSensitivity?: number;
+
+    /**
+     * The duration to smoothly scroll between the origin and the target in
+     * milliseconds. Set to 0 to disable smooth scrolling and scroll instantly.
+     */
+    smoothScrollDuration?: number;
 
     /**
      * The size of tab stops in the terminal.
@@ -252,6 +234,10 @@ declare module '@daiyam/xterm-tab' {
      * - Reflow is disabled.
      * - Lines are assumed to be wrapped if the last character of the line is
      *   not whitespace.
+     *
+     * When using conpty on Windows 11 version >= 21376, it is recommended to
+     * disable this because native text wrapping sequences are output correctly
+     * thanks to https://github.com/microsoft/terminal/issues/405
      */
     windowsMode?: boolean;
 
@@ -275,6 +261,22 @@ declare module '@daiyam/xterm-tab' {
   }
 
   /**
+   * An object containing additional options for the terminal that can only be
+   * set on start up.
+   */
+  export interface ITerminalInitOnlyOptions {
+    /**
+     * The number of columns in the terminal.
+     */
+    cols?: number;
+
+    /**
+     * The number of rows in the terminal.
+     */
+    rows?: number;
+  }
+
+  /**
    * Contains colors to theme the terminal with.
    */
   export interface ITheme {
@@ -287,7 +289,11 @@ declare module '@daiyam/xterm-tab' {
     /** The accent color of the cursor (fg color for a block cursor) */
     cursorAccent?: string;
     /** The selection background color (can be transparent) */
-    selection?: string;
+    selectionBackground?: string;
+    /** The selection foreground color */
+    selectionForeground?: string;
+    /** The selection background color when the terminal does not have focus (can be transparent) */
+    selectionInactiveBackground?: string;
     /** ANSI black (eg. `\x1b[30m`) */
     black?: string;
     /** ANSI red (eg. `\x1b[31m`) */
@@ -320,50 +326,8 @@ declare module '@daiyam/xterm-tab' {
     brightCyan?: string;
     /** ANSI bright white (eg. `\x1b[1;37m`) */
     brightWhite?: string;
-  }
-
-  /**
-   * An object containing options for a link matcher.
-   */
-  export interface ILinkMatcherOptions {
-    /**
-     * The index of the link from the regex.match(text) call. This defaults to 0
-     * (for regular expressions without capture groups).
-     */
-    matchIndex?: number;
-
-    /**
-     * A callback that validates whether to create an individual link, pass
-     * whether the link is valid to the callback.
-     */
-    validationCallback?: (uri: string, callback: (isValid: boolean) => void) => void;
-
-    /**
-     * A callback that fires when the mouse hovers over a link for a period of
-     * time (defined by {@link ITerminalOptions.linkTooltipHoverDuration}).
-     */
-    tooltipCallback?: (event: MouseEvent, uri: string, location: IViewportRange) => boolean | void;
-
-    /**
-     * A callback that fires when the mouse leaves a link. Note that this can
-     * happen even when tooltipCallback hasn't fired for the link yet.
-     */
-    leaveCallback?: () => void;
-
-    /**
-     * The priority of the link matcher, this defines the order in which the
-     * link matcher is evaluated relative to others, from highest to lowest. The
-     * default value is 0.
-     */
-    priority?: number;
-
-    /**
-     * A callback that fires when the mousedown and click events occur that
-     * determines whether a link will be activated upon click. This enables
-     * only activating a link when a certain modifier is held down, if not the
-     * mouse event will continue propagation (eg. double click to select word).
-     */
-    willLinkActivate?: (event: MouseEvent, uri: string) => boolean;
+    /** ANSI extended colors (16-255) */
+    extendedAnsi?: string[];
   }
 
   /**
@@ -534,6 +498,11 @@ declare module '@daiyam/xterm-tab' {
      * being printed to the terminal when `screenReaderMode` is enabled.
      */
     tooMuchOutput: string;
+
+    /**
+     * The aria label for the accessibility buffer
+     */
+    accessibilityBuffer: string;
   }
 
   /**
@@ -721,9 +690,7 @@ declare module '@daiyam/xterm-tab' {
     readonly cols: number;
 
     /**
-     * (EXPERIMENTAL) The terminal's current buffer, this might be either the
-     * normal buffer or the alt buffer depending on what's running in the
-     * terminal.
+     * Access to the terminal's normal and alt buffer.
      */
     readonly buffer: IBufferNamespace;
 
@@ -734,8 +701,7 @@ declare module '@daiyam/xterm-tab' {
     readonly markers: ReadonlyArray<IMarker>;
 
     /**
-     * (EXPERIMENTAL) Get the parser interface to register
-     * custom escape sequence handlers.
+     * Get the parser interface to register custom escape sequence handlers.
      */
     readonly parser: IParser;
 
@@ -751,23 +717,36 @@ declare module '@daiyam/xterm-tab' {
     readonly modes: IModes;
 
     /**
-     * Gets or sets the terminal options. This supports setting multiple options.
+     * Gets or sets the terminal options. This supports setting multiple
+     * options.
      *
      * @example Get a single option
-     * ```typescript
+     * ```ts
      * console.log(terminal.options.fontSize);
      * ```
      *
-     * @example Set a single option
-     * ```typescript
+     * @example Set a single option:
+     * ```ts
      * terminal.options.fontSize = 12;
+     * ```
+     * Note that for options that are object, a new object must be used in order
+     * to take effect as a reference comparison will be done:
+     * ```ts
+     * const newValue = terminal.options.theme;
+     * newValue.background = '#000000';
+     *
+     * // This won't work
+     * terminal.options.theme = newValue;
+     *
+     * // This will work
+     * terminal.options.theme = { ...newValue };
      * ```
      *
      * @example Set multiple options
-     * ```typescript
+     * ```ts
      * terminal.options = {
      *   fontSize: 12,
-     *   fontFamily: 'Arial',
+     *   fontFamily: 'Courier New'
      * };
      * ```
      */
@@ -783,7 +762,7 @@ declare module '@daiyam/xterm-tab' {
      *
      * @param options An object containing a set of options.
      */
-    constructor(options?: ITerminalOptions);
+    constructor(options?: ITerminalOptions & ITerminalInitOnlyOptions);
 
     /**
      * Adds an event listener for when the bell is triggered.
@@ -838,6 +817,17 @@ declare module '@daiyam/xterm-tab' {
      * @returns an `IDisposable` to stop listening.
      */
     onRender: IEvent<{ start: number, end: number }>;
+
+    /**
+     * Adds an event listener for when data has been parsed by the terminal,
+     * after {@link write} is called. This event is useful to listen for any
+     * changes in the buffer.
+     *
+     * This fires at most once per frame, after data parsing completes. Note
+     * that this can fire when there are still writes pending if there is a lot
+     * of data.
+     */
+    onWriteParsed: IEvent<void>;
 
     /**
      * Adds an event listener for when the terminal is resized. The event value
@@ -901,30 +891,26 @@ declare module '@daiyam/xterm-tab' {
      * This is a function that takes a KeyboardEvent, allowing consumers to stop
      * propagation and/or prevent the default action. The function returns
      * whether the event should be processed by xterm.js.
+     *
+     * @example A custom keymap that overrides the backspace key
+     * ```ts
+     * const keymap = [
+     *   { "key": "Backspace", "shiftKey": false, "mapCode": 8 },
+     *   { "key": "Backspace", "shiftKey": true, "mapCode": 127 }
+     * ];
+     * term.attachCustomKeyEventHandler(ev => {
+     *   if (ev.type === 'keydown') {
+     *     for (let i in keymap) {
+     *       if (keymap[i].key == ev.key && keymap[i].shiftKey == ev.shiftKey) {
+     *         socket.send(String.fromCharCode(keymap[i].mapCode));
+     *         return false;
+     *       }
+     *     }
+     *   }
+     * });
+     * ```
      */
     attachCustomKeyEventHandler(customKeyEventHandler: (event: KeyboardEvent) => boolean): void;
-
-    /**
-     * (EXPERIMENTAL) Registers a link matcher, allowing custom link patterns to
-     * be matched and handled.
-     * @deprecated The link matcher API is now deprecated in favor of the link
-     * provider API, see `registerLinkProvider`.
-     * @param regex The regular expression to search for, specifically this
-     * searches the textContent of the rows. You will want to use \s to match a
-     * space ' ' character for example.
-     * @param handler The callback when the link is called.
-     * @param options Options for the link matcher.
-     * @return The ID of the new matcher, this can be used to deregister.
-     */
-    registerLinkMatcher(regex: RegExp, handler: (event: MouseEvent, uri: string) => void, options?: ILinkMatcherOptions): number;
-
-    /**
-     * (EXPERIMENTAL) Deregisters a link matcher if it has been registered.
-     * @deprecated The link matcher API is now deprecated in favor of the link
-     * provider API, see `registerLinkProvider`.
-     * @param matcherId The link matcher's ID (returned after register)
-     */
-    deregisterLinkMatcher(matcherId: number): void;
 
     /**
      * Registers a link provider, allowing a custom parser to be used to match
@@ -961,7 +947,7 @@ declare module '@daiyam/xterm-tab' {
      * with a string of text that is eligible for joining and returns an array
      * where each entry is an array containing the start (inclusive) and end
      * (exclusive) indexes of ranges that should be rendered as a single unit.
-     * @return The ID of the new joiner, this can be used to deregister
+     * @returns The ID of the new joiner, this can be used to deregister
      */
     registerCharacterJoiner(handler: (text: string) => [number, number][]): number;
 
@@ -973,17 +959,12 @@ declare module '@daiyam/xterm-tab' {
     deregisterCharacterJoiner(joinerId: number): void;
 
     /**
-     * (EXPERIMENTAL) Adds a marker to the normal buffer and returns it. If the
-     * alt buffer is active, undefined is returned.
+     * Adds a marker to the normal buffer and returns it. If the alt buffer is
+     * active, undefined is returned.
      * @param cursorYOffset The y position offset of the marker from the cursor.
      * @returns The new marker or undefined.
      */
     registerMarker(cursorYOffset?: number): IMarker | undefined;
-
-    /**
-     * @deprecated use `registerMarker` instead.
-     */
-    addMarker(cursorYOffset: number): IMarker | undefined;
 
     /**
      * (EXPERIMENTAL) Adds a decoration to the terminal using
@@ -1008,7 +989,7 @@ declare module '@daiyam/xterm-tab' {
     /**
      * Gets the selection position or undefined if there is no selection.
      */
-    getSelectionPosition(): ISelectionPosition | undefined;
+    getSelectionPosition(): IBufferRange | undefined;
 
     /**
      * Clears the current terminal selection.
@@ -1037,7 +1018,8 @@ declare module '@daiyam/xterm-tab' {
 
     /*
      * Disposes of the terminal, detaching it from the DOM and removing any
-     * active listeners.
+     * active listeners. Once the terminal is disposed it should not be used
+     * again.
      */
     dispose(): void;
 
@@ -1095,120 +1077,10 @@ declare module '@daiyam/xterm-tab' {
     writeln(data: string | Uint8Array, callback?: () => void): void;
 
     /**
-     * Write UTF8 data to the terminal.
-     * @param data The data to write to the terminal.
-     * @param callback Optional callback when data was processed.
-     * @deprecated use `write` instead
-     */
-    writeUtf8(data: Uint8Array, callback?: () => void): void;
-
-    /**
      * Writes text to the terminal, performing the necessary transformations for pasted text.
      * @param data The text to write to the terminal.
      */
     paste(data: string): void;
-
-    /**
-     * Retrieves an option's value from the terminal.
-     * @param key The option key.
-     * @deprecated Use `options` instead.
-     */
-    getOption(key: 'bellSound' | 'bellStyle' | 'cursorStyle' | 'fontFamily' | 'logLevel' | 'rendererType' | 'termName' | 'wordSeparator'): string;
-    /**
-     * Retrieves an option's value from the terminal.
-     * @param key The option key.
-     * @deprecated Use `options` instead.
-     */
-    getOption(key: 'allowTransparency' | 'cancelEvents' | 'convertEol' | 'cursorBlink' | 'disableStdin' | 'macOptionIsMeta' | 'rightClickSelectsWord' | 'popOnBell' | 'visualBell' | 'windowsMode'): boolean;
-    /**
-     * Retrieves an option's value from the terminal.
-     * @param key The option key.
-     * @deprecated Use `options` instead.
-     */
-    getOption(key: 'cols' | 'fontSize' | 'letterSpacing' | 'lineHeight' | 'rows' | 'tabStopWidth' | 'scrollback'): number;
-    /**
-     * Retrieves an option's value from the terminal.
-     * @param key The option key.
-     * @deprecated Use `options` instead.
-     */
-    getOption(key: 'fontWeight' | 'fontWeightBold'): FontWeight;
-    /**
-     * Retrieves an option's value from the terminal.
-     * @param key The option key.
-     * @deprecated Use `options` instead.
-     */
-    getOption(key: string): any;
-
-    /**
-     * Sets an option on the terminal.
-     * @param key The option key.
-     * @param value The option value.
-     * @deprecated Use `options` instead.
-     */
-    setOption(key: 'fontFamily' | 'termName' | 'bellSound' | 'wordSeparator', value: string): void;
-    /**
-     * Sets an option on the terminal.
-     * @param key The option key.
-     * @param value The option value.
-     * @deprecated Use `options` instead.
-     */
-    setOption(key: 'fontWeight' | 'fontWeightBold', value: null | 'normal' | 'bold' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | number): void;
-    /**
-     * Sets an option on the terminal.
-     * @param key The option key.
-     * @param value The option value.
-     * @deprecated Use `options` instead.
-     */
-    setOption(key: 'logLevel', value: LogLevel): void;
-    /**
-     * Sets an option on the terminal.
-     * @param key The option key.
-     * @param value The option value.
-     * @deprecated Use `options` instead.
-     */
-    setOption(key: 'bellStyle', value: null | 'none' | 'visual' | 'sound' | 'both'): void;
-    /**
-     * Sets an option on the terminal.
-     * @param key The option key.
-     * @param value The option value.
-     * @deprecated Use `options` instead.
-     */
-    setOption(key: 'cursorStyle', value: null | 'block' | 'underline' | 'bar'): void;
-    /**
-     * Sets an option on the terminal.
-     * @param key The option key.
-     * @param value The option value.
-     * @deprecated Use `options` instead.
-     */
-    setOption(key: 'allowTransparency' | 'cancelEvents' | 'convertEol' | 'cursorBlink' | 'disableStdin' | 'macOptionIsMeta' | 'popOnBell' | 'rightClickSelectsWord' | 'visualBell' | 'windowsMode', value: boolean): void;
-    /**
-     * Sets an option on the terminal.
-     * @param key The option key.
-     * @param value The option value.
-     * @deprecated Use `options` instead.
-     */
-    setOption(key: 'fontSize' | 'letterSpacing' | 'lineHeight' | 'tabStopWidth' | 'scrollback', value: number): void;
-    /**
-     * Sets an option on the terminal.
-     * @param key The option key.
-     * @param value The option value.
-     * @deprecated Use `options` instead.
-     */
-    setOption(key: 'theme', value: ITheme): void;
-    /**
-     * Sets an option on the terminal.
-     * @param key The option key.
-     * @param value The option value.
-     * @deprecated Use `options` instead.
-     */
-    setOption(key: 'cols' | 'rows', value: number): void;
-    /**
-     * Sets an option on the terminal.
-     * @param key The option key.
-     * @param value The option value.
-     * @deprecated Use `options` instead.
-     */
-    setOption(key: string, value: any): void;
 
     /**
      * Tells the renderer to refresh terminal content between two rows
@@ -1249,31 +1121,6 @@ declare module '@daiyam/xterm-tab' {
   }
 
   /**
-   * An object representing a selection within the terminal.
-   */
-  interface ISelectionPosition {
-    /**
-     * The start column of the selection.
-     */
-    startColumn: number;
-
-    /**
-     * The start row of the selection.
-     */
-    startRow: number;
-
-    /**
-     * The end column of the selection.
-     */
-    endColumn: number;
-
-    /**
-     * The end row of the selection.
-     */
-    endRow: number;
-  }
-
-  /**
    * An object representing a range within the viewport of the terminal.
    */
   export interface IViewportRange {
@@ -1306,6 +1153,44 @@ declare module '@daiyam/xterm-tab' {
      * specific row.
      */
     y: number;
+  }
+
+  /**
+   * A link handler for OSC 8 hyperlinks.
+   */
+  interface ILinkHandler {
+    /**
+     * Calls when the link is activated.
+     * @param event The mouse event triggering the callback.
+     * @param text The text of the link.
+     * @param range The buffer range of the link.
+     */
+     activate(event: MouseEvent, text: string, range: IBufferRange): void;
+
+     /**
+      * Called when the mouse hovers the link. To use this to create a DOM-based hover tooltip,
+      * create the hover element within `Terminal.element` and add the `xterm-hover` class to it,
+      * that will cause mouse events to not fall through and activate other links.
+      * @param event The mouse event triggering the callback.
+      * @param text The text of the link.
+      * @param range The buffer range of the link.
+      */
+     hover?(event: MouseEvent, text: string, range: IBufferRange): void;
+
+     /**
+      * Called when the mouse leaves the link.
+      * @param event The mouse event triggering the callback.
+      * @param text The text of the link.
+      * @param range The buffer range of the link.
+      */
+     leave?(event: MouseEvent, text: string, range: IBufferRange): void;
+
+     /**
+      * Whether to receive non-HTTP URLs from LinkProvider. When false, any usage of non-HTTP URLs
+      * will be ignored. Enabling this option without proper protection in `activate` function
+      * may cause security issues such as XSS.
+      */
+     allowNonHttpProtocols?: boolean;
   }
 
   /**
@@ -1722,7 +1607,7 @@ declare module '@daiyam/xterm-tab' {
      * array will contain subarrays with their numercial values.
      * Return `true` if the sequence was handled, `false` if the parser should try
      * a previous handler. The most recently added handler is tried first.
-     * @return An IDisposable you can call to remove this handler.
+     * @returns An IDisposable you can call to remove this handler.
      */
     registerCsiHandler(id: IFunctionIdentifier, callback: (params: (number | number[])[]) => boolean | Promise<boolean>): IDisposable;
 
@@ -1740,7 +1625,7 @@ declare module '@daiyam/xterm-tab' {
      * The function gets the payload and numerical parameters as arguments.
      * Return `true` if the sequence was handled, `false` if the parser should try
      * a previous handler. The most recently added handler is tried first.
-     * @return An IDisposable you can call to remove this handler.
+     * @returns An IDisposable you can call to remove this handler.
      */
     registerDcsHandler(id: IFunctionIdentifier, callback: (data: string, param: (number | number[])[]) => boolean | Promise<boolean>): IDisposable;
 
@@ -1752,7 +1637,7 @@ declare module '@daiyam/xterm-tab' {
      * @param callback The function to handle the sequence.
      * Return `true` if the sequence was handled, `false` if the parser should try
      * a previous handler. The most recently added handler is tried first.
-     * @return An IDisposable you can call to remove this handler.
+     * @returns An IDisposable you can call to remove this handler.
      */
     registerEscHandler(id: IFunctionIdentifier, handler: () => boolean | Promise<boolean>): IDisposable;
 
@@ -1769,7 +1654,7 @@ declare module '@daiyam/xterm-tab' {
      * The callback is called with OSC data string.
      * Return `true` if the sequence was handled, `false` if the parser should try
      * a previous handler. The most recently added handler is tried first.
-     * @return An IDisposable you can call to remove this handler.
+     * @returns An IDisposable you can call to remove this handler.
      */
     registerOscHandler(ident: number, callback: (data: string) => boolean | Promise<boolean>): IDisposable;
   }

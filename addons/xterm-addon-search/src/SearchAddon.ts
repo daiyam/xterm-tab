@@ -3,8 +3,9 @@
  * @license MIT
  */
 
-import { Terminal, IDisposable, ITerminalAddon, ISelectionPosition, IDecoration } from '@daiyam/xterm-tab';
+import { Terminal, IDisposable, ITerminalAddon, IBufferRange, IDecoration } from '@daiyam/xterm-tab';
 import { EventEmitter } from 'common/EventEmitter';
+import { Disposable, toDisposable } from 'common/Lifecycle';
 
 export interface ISearchOptions {
   regex?: boolean;
@@ -50,12 +51,12 @@ type LineCacheEntry = [
 const NON_WORD_CHARACTERS = ' ~!@#$%^&*()+`-=[]{}|\\;:"\',./<>?';
 const LINES_CACHE_TIME_TO_LIVE = 15 * 1000; // 15 secs
 
-export class SearchAddon implements ITerminalAddon {
+export class SearchAddon extends Disposable implements ITerminalAddon {
   private _terminal: Terminal | undefined;
   private _cachedSearchTerm: string | undefined;
   private _selectedDecoration: IDecoration | undefined;
   private _resultDecorations: Map<number, IDecoration[]> | undefined;
-  private _searchResults:  Map<string, ISearchResult> | undefined;
+  private _searchResults: Map<string, ISearchResult> | undefined;
   private _onDataDisposable: IDisposable | undefined;
   private _onResizeDisposable: IDisposable | undefined;
   private _lastSearchOptions: ISearchOptions | undefined;
@@ -72,13 +73,18 @@ export class SearchAddon implements ITerminalAddon {
 
   private _resultIndex: number | undefined;
 
-  private readonly _onDidChangeResults = new EventEmitter<{resultIndex: number, resultCount: number} | undefined>();
+  private readonly _onDidChangeResults = this.register(new EventEmitter<{ resultIndex: number, resultCount: number } | undefined>());
   public readonly onDidChangeResults = this._onDidChangeResults.event;
 
   public activate(terminal: Terminal): void {
     this._terminal = terminal;
-    this._onDataDisposable = this._terminal.onData(() => this._updateMatches());
-    this._onResizeDisposable = this._terminal.onResize(() => this._updateMatches());
+    this._onDataDisposable = this.register(this._terminal.onWriteParsed(() => this._updateMatches()));
+    this._onResizeDisposable = this.register(this._terminal.onResize(() => this._updateMatches()));
+    this.register(toDisposable(() => {
+      this.clearDecorations();
+      this._onDataDisposable?.dispose();
+      this._onResizeDisposable?.dispose();
+    }));
   }
 
   private _updateMatches(): void {
@@ -87,17 +93,11 @@ export class SearchAddon implements ITerminalAddon {
     }
     if (this._cachedSearchTerm && this._lastSearchOptions?.decorations) {
       this._highlightTimeout = setTimeout(() => {
-        this.findPrevious(this._cachedSearchTerm!,  { ...this._lastSearchOptions, incremental: true, noScroll: true });
-        this._resultIndex = this._searchResults ? this._searchResults.size -1 : -1;
-        this._onDidChangeResults.fire({ resultIndex: this._searchResults ? this._searchResults.size - 1 : -1, resultCount: this._searchResults ? this._searchResults.size : -1 });
+        this.findPrevious(this._cachedSearchTerm!, { ...this._lastSearchOptions, incremental: true, noScroll: true });
+        this._resultIndex = this._searchResults ? this._searchResults.size - 1 : -1;
+        this._onDidChangeResults.fire({ resultIndex: this._resultIndex, resultCount: this._searchResults?.size ?? -1 });
       }, 200);
     }
-  }
-
-  public dispose(): void {
-    this.clearDecorations();
-    this._onDataDisposable?.dispose();
-    this._onResizeDisposable?.dispose();
   }
 
   public clearDecorations(retainCachedSearchTerm?: boolean): void {
@@ -126,7 +126,7 @@ export class SearchAddon implements ITerminalAddon {
    * doesn't exist, do nothing.
    * @param term The search term.
    * @param searchOptions Search options.
-   * @return Whether a result was found.
+   * @returns Whether a result was found.
    */
   public findNext(term: string, searchOptions?: ISearchOptions): boolean {
     if (!this._terminal) {
@@ -134,7 +134,7 @@ export class SearchAddon implements ITerminalAddon {
     }
     this._lastSearchOptions = searchOptions;
     if (searchOptions?.decorations) {
-      if (this._resultIndex !== undefined || this._cachedSearchTerm && term !== this._cachedSearchTerm) {
+      if (this._resultIndex !== undefined || this._cachedSearchTerm === undefined || term !== this._cachedSearchTerm) {
         this._highlightAllMatches(term, searchOptions);
       }
     }
@@ -235,14 +235,14 @@ export class SearchAddon implements ITerminalAddon {
 
     let startCol = 0;
     let startRow = 0;
-    let currentSelection: ISelectionPosition | undefined;
+    let currentSelection: IBufferRange | undefined;
     if (this._terminal.hasSelection()) {
       const incremental = searchOptions ? searchOptions.incremental : false;
       // Start from the selection end if there is a selection
       // For incremental search, use existing row
       currentSelection = this._terminal.getSelectionPosition()!;
-      startRow = incremental ? currentSelection.startRow : currentSelection.endRow;
-      startCol = incremental ? currentSelection.startColumn : currentSelection.endColumn;
+      startRow = incremental ? currentSelection.start.y : currentSelection.end.y;
+      startCol = incremental ? currentSelection.start.x : currentSelection.end.x;
     }
 
     this._initLinesCache();
@@ -282,13 +282,15 @@ export class SearchAddon implements ITerminalAddon {
 
     // If there is only one result, wrap back and return selection if it exists.
     if (!result && currentSelection) {
-      searchPosition.startRow = currentSelection.startRow;
+      searchPosition.startRow = currentSelection.start.y;
       searchPosition.startCol = 0;
       result = this._findInLine(term, searchPosition, searchOptions);
     }
 
     if (this._searchResults) {
-      if (this._resultIndex === undefined) {
+      if (this._searchResults.size === 0) {
+        this._resultIndex = -1;
+      } else if (this._resultIndex === undefined) {
         this._resultIndex = 0;
       } else {
         this._resultIndex++;
@@ -305,25 +307,25 @@ export class SearchAddon implements ITerminalAddon {
    * doesn't exist, do nothing.
    * @param term The search term.
    * @param searchOptions Search options.
-   * @return Whether a result was found.
+   * @returns Whether a result was found.
    */
   public findPrevious(term: string, searchOptions?: ISearchOptions): boolean {
     if (!this._terminal) {
       throw new Error('Cannot use addon until it has been loaded');
     }
     this._lastSearchOptions = searchOptions;
-    if (searchOptions?.decorations && (this._resultIndex !== undefined || term !== this._cachedSearchTerm)) {
-      this._highlightAllMatches(term, searchOptions);
+    if (searchOptions?.decorations) {
+      if (this._resultIndex !== undefined || this._cachedSearchTerm === undefined || term !== this._cachedSearchTerm) {
+        this._highlightAllMatches(term, searchOptions);
+      }
     }
     return this._fireResults(term, this._findPreviousAndSelect(term, searchOptions), searchOptions);
   }
 
   private _fireResults(term: string, found: boolean, searchOptions?: ISearchOptions): boolean {
     if (searchOptions?.decorations) {
-      if (found && this._resultIndex !== undefined && this._searchResults?.size) {
+      if (this._resultIndex !== undefined && this._searchResults?.size !== undefined) {
         this._onDidChangeResults.fire({ resultIndex: this._resultIndex, resultCount: this._searchResults.size });
-      } else if (this._resultIndex === -1) {
-        this._onDidChangeResults.fire({ resultIndex: -1, resultCount: -1 });
       } else {
         this._onDidChangeResults.fire(undefined);
       }
@@ -355,12 +357,12 @@ export class SearchAddon implements ITerminalAddon {
     const isReverseSearch = true;
 
     const incremental = searchOptions ? searchOptions.incremental : false;
-    let currentSelection: ISelectionPosition | undefined;
+    let currentSelection: IBufferRange | undefined;
     if (this._terminal.hasSelection()) {
       currentSelection = this._terminal.getSelectionPosition()!;
       // Start from selection start if there is a selection
-      startRow = currentSelection.startRow;
-      startCol = currentSelection.startColumn;
+      startRow = currentSelection.start.y;
+      startCol = currentSelection.start.x;
     }
 
     this._initLinesCache();
@@ -376,8 +378,8 @@ export class SearchAddon implements ITerminalAddon {
       if (!isOldResultHighlighted) {
         // If selection was not able to be expanded to the right, then try reverse search
         if (currentSelection) {
-          searchPosition.startRow = currentSelection.endRow;
-          searchPosition.startCol = currentSelection.endColumn;
+          searchPosition.startRow = currentSelection.end.y;
+          searchPosition.startCol = currentSelection.end.x;
         }
         result = this._findInLine(term, searchPosition, searchOptions, true);
       }
@@ -408,12 +410,14 @@ export class SearchAddon implements ITerminalAddon {
     }
 
     if (this._searchResults) {
-      if (this._resultIndex === undefined || this._resultIndex < 0) {
-        this._resultIndex = this._searchResults?.size - 1;
+      if (this._searchResults.size === 0) {
+        this._resultIndex = -1;
+      } else if (this._resultIndex === undefined || this._resultIndex < 0) {
+        this._resultIndex = this._searchResults.size - 1;
       } else {
         this._resultIndex--;
         if (this._resultIndex === -1) {
-          this._resultIndex = this._searchResults?.size - 1;
+          this._resultIndex = this._searchResults.size - 1;
         }
       }
     }
@@ -473,10 +477,10 @@ export class SearchAddon implements ITerminalAddon {
    * started on an earlier line then it is skipped since it will be properly searched when the terminal line that the
    * text starts on is searched.
    * @param term The search term.
-   * @param position The position to start the search.
+   * @param searchPosition The position to start the search.
    * @param searchOptions Search options.
    * @param isReverseSearch Whether the search should start from the right side of the terminal and search to the left.
-   * @return The search result if it was found.
+   * @returns The search result if it was found.
    */
   protected _findInLine(term: string, searchPosition: ISearchPosition, searchOptions: ISearchOptions = {}, isReverseSearch: boolean = false): ISearchResult | undefined {
     const terminal = this._terminal!;
@@ -604,7 +608,8 @@ export class SearchAddon implements ITerminalAddon {
           break;
         }
         if (cell.getWidth()) {
-          offset += cell.getChars().length;
+          // Treat null characters as whitespace to align with the translateToString API
+          offset += cell.getCode() === 0 ? 1 : cell.getChars().length;
         }
       }
       lineIndex++;
@@ -622,7 +627,7 @@ export class SearchAddon implements ITerminalAddon {
    * Wide characters will count as two columns in the resulting string. This
    * function is useful for getting the actual text underneath the raw selection
    * position.
-   * @param line The line being translated.
+   * @param lineIndex The index of the line being translated.
    * @param trimRight Whether to trim whitespace to the right.
    */
   private _translateBufferLineToStringWithWrap(lineIndex: number, trimRight: boolean): LineCacheEntry {
@@ -657,7 +662,7 @@ export class SearchAddon implements ITerminalAddon {
   /**
    * Selects and scrolls to a result.
    * @param result The result to select.
-   * @return Whether a result was selected.
+   * @returns Whether a result was selected.
    */
   private _selectResult(result: ISearchResult | undefined, options?: ISearchDecorationOptions, noScroll?: boolean): boolean {
     const terminal = this._terminal!;
@@ -686,7 +691,7 @@ export class SearchAddon implements ITerminalAddon {
     }
 
     if (!noScroll) {
-    // If it is not in the viewport then we scroll else it just gets selected
+      // If it is not in the viewport then we scroll else it just gets selected
       if (result.row >= (terminal.buffer.active.viewportY + terminal.rows) || result.row < terminal.buffer.active.viewportY) {
         let scroll = result.row - terminal.buffer.active.viewportY;
         scroll -= Math.floor(terminal.rows / 2);
@@ -697,10 +702,10 @@ export class SearchAddon implements ITerminalAddon {
   }
 
   /**
-   * Applies styles to the decoration when it is rendered
-   * @param element the decoration's element
-   * @param backgroundColor the background color to apply
-   * @param borderColor the border color to apply
+   * Applies styles to the decoration when it is rendered.
+   * @param element The decoration's element.
+   * @param borderColor The border color to apply.
+   * @param isActiveResult Whether the element is part of the active search result.
    * @returns
    */
   private _applyStyles(element: HTMLElement, borderColor: string | undefined, isActiveResult: boolean): void {

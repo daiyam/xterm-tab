@@ -6,22 +6,16 @@
 import { IOptionsService, ITerminalOptions, FontWeight } from 'common/services/Services';
 import { EventEmitter, IEvent } from 'common/EventEmitter';
 import { isMac } from 'common/Platform';
+import { CursorStyle, IDisposable } from 'common/Types';
+import { Disposable } from 'common/Lifecycle';
 
-// Source: https://freesound.org/people/altemark/sounds/45759/
-// This sound is released under the Creative Commons Attribution 3.0 Unported
-// (CC BY 3.0) license. It was created by 'altemark'. No modifications have been
-// made, apart from the conversion to base64.
-export const DEFAULT_BELL_SOUND = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4LjMyLjEwNAAAAAAAAAAAAAAA//tQxAADB8AhSmxhIIEVCSiJrDCQBTcu3UrAIwUdkRgQbFAZC1CQEwTJ9mjRvBA4UOLD8nKVOWfh+UlK3z/177OXrfOdKl7pyn3Xf//WreyTRUoAWgBgkOAGbZHBgG1OF6zM82DWbZaUmMBptgQhGjsyYqc9ae9XFz280948NMBWInljyzsNRFLPWdnZGWrddDsjK1unuSrVN9jJsK8KuQtQCtMBjCEtImISdNKJOopIpBFpNSMbIHCSRpRR5iakjTiyzLhchUUBwCgyKiweBv/7UsQbg8isVNoMPMjAAAA0gAAABEVFGmgqK////9bP/6XCykxBTUUzLjEwMKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq';
-
-export const DEFAULT_OPTIONS: Readonly<ITerminalOptions> = {
+export const DEFAULT_OPTIONS: Readonly<Required<ITerminalOptions>> = {
   cols: 80,
   rows: 24,
   cursorBlink: false,
   cursorStyle: 'block',
   cursorWidth: 1,
   customGlyphs: true,
-  bellSound: DEFAULT_BELL_SOUND,
-  bellStyle: 'none',
   drawBoldTextInBrightColors: true,
   fastScrollModifier: 'alt',
   fastScrollSensitivity: 5,
@@ -30,22 +24,23 @@ export const DEFAULT_OPTIONS: Readonly<ITerminalOptions> = {
   fontWeight: 'normal',
   fontWeightBold: 'bold',
   lineHeight: 1.0,
-  linkTooltipHoverDuration: 500,
   letterSpacing: 0,
+  linkHandler: null,
   logLevel: 'info',
   scrollback: 1000,
+  scrollOnUserInput: true,
   scrollSensitivity: 1,
   screenReaderMode: false,
+  smoothScrollDuration: 0,
   macOptionIsMeta: false,
   macOptionClickForcesSelection: false,
   minimumContrastRatio: 1,
   disableStdin: false,
-  allowProposedApi: true,
+  allowProposedApi: false,
   allowTransparency: false,
   tabStopWidth: 8,
   theme: {},
   rightClickSelectsWord: isMac,
-  rendererType: 'canvas',
   windowOptions: {},
   windowsMode: false,
   wordSeparator: ' \t()[]{}\',"`',
@@ -53,21 +48,22 @@ export const DEFAULT_OPTIONS: Readonly<ITerminalOptions> = {
   convertEol: false,
   termName: 'xterm',
   cancelEvents: false,
-  overviewRulerWidth: undefined
+  overviewRulerWidth: 0
 };
 
 const FONT_WEIGHT_OPTIONS: Extract<FontWeight, string>[] = ['normal', 'bold', '100', '200', '300', '400', '500', '600', '700', '800', '900'];
 
-export class OptionsService implements IOptionsService {
+export class OptionsService extends Disposable implements IOptionsService {
   public serviceBrand: any;
 
-  public readonly rawOptions: ITerminalOptions;
-  public options: ITerminalOptions;
+  public readonly rawOptions: Required<ITerminalOptions>;
+  public options: Required<ITerminalOptions>;
 
-  private _onOptionChange = new EventEmitter<string>();
-  public get onOptionChange(): IEvent<string> { return this._onOptionChange.event; }
+  private readonly _onOptionChange = this.register(new EventEmitter<keyof ITerminalOptions>());
+  public readonly onOptionChange = this._onOptionChange.event;
 
   constructor(options: Partial<ITerminalOptions>) {
+    super();
     // set the default value of each option
     const defaultOptions = { ...DEFAULT_OPTIONS };
     for (const key in options) {
@@ -85,6 +81,24 @@ export class OptionsService implements IOptionsService {
     this.rawOptions = defaultOptions;
     this.options = { ... defaultOptions };
     this._setupOptions();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  public onSpecificOptionChange<T extends keyof ITerminalOptions>(key: T, listener: (value: ITerminalOptions[T]) => any): IDisposable {
+    return this.onOptionChange(eventKey => {
+      if (eventKey === key) {
+        listener(this.rawOptions[key]);
+      }
+    });
+  }
+
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  public onMultipleOptionChange(keys: (keyof ITerminalOptions)[], listener: () => any): IDisposable {
+    return this.onOptionChange(eventKey => {
+      if (keys.indexOf(eventKey) !== -1) {
+        listener();
+      }
+    });
   }
 
   private _setupOptions(): void {
@@ -117,15 +131,16 @@ export class OptionsService implements IOptionsService {
     }
   }
 
-  public setOption(key: string, value: any): void {
-    this.options[key] = value;
-  }
-
   private _sanitizeAndValidateOption(key: string, value: any): any {
     switch (key) {
-      case 'bellStyle':
       case 'cursorStyle':
-      case 'rendererType':
+        if (!value) {
+          value = DEFAULT_OPTIONS[key];
+        }
+        if (!isCursorStyle(value)) {
+          throw new Error(`"${value}" is not a valid value for ${key}`);
+        }
+        break;
       case 'wordSeparator':
         if (!value) {
           value = DEFAULT_OPTIONS[key];
@@ -171,8 +186,8 @@ export class OptionsService implements IOptionsService {
     }
     return value;
   }
+}
 
-  public getOption(key: string): any {
-    return this.options[key];
-  }
+function isCursorStyle(value: unknown): value is CursorStyle {
+  return value === 'block' || value === 'underline' || value === 'bar';
 }

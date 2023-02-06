@@ -12,7 +12,7 @@ let term: Terminal;
 describe('Headless API Tests', function (): void {
   beforeEach(() => {
     // Create default terminal to be used by most tests
-    term = new Terminal();
+    term = new Terminal({ allowProposedApi: true });
   });
 
   it('Default options', async () => {
@@ -22,7 +22,7 @@ describe('Headless API Tests', function (): void {
 
   it('Proposed API check', async () => {
     term = new Terminal({ allowProposedApi: false });
-    throws(() => term.buffer, (error) => error.message === 'You must set the allowProposedApi option to true to use proposed API');
+    throws(() => term.markers, (error) => error.message === 'You must set the allowProposedApi option to true to use proposed API');
   });
 
   it('write', async () => {
@@ -102,7 +102,7 @@ describe('Headless API Tests', function (): void {
   });
 
   it('clear', async () => {
-    term = new Terminal({ rows: 5 });
+    term = new Terminal({ rows: 5, allowProposedApi: true });
     for (let i = 0; i < 10; i++) {
       await writeSync('\n\rtest' + i);
     }
@@ -112,12 +112,6 @@ describe('Headless API Tests', function (): void {
     for (let i = 1; i < 5; i++) {
       lineEquals(i, '');
     }
-  });
-
-  it('getOption, setOption', async () => {
-    strictEqual(term.getOption('scrollback'), 1000);
-    term.setOption('scrollback', 50);
-    strictEqual(term.getOption('scrollback'), 50);
   });
 
   describe('options', () => {
@@ -131,13 +125,10 @@ describe('Headless API Tests', function (): void {
     });
     it('get options', () => {
       const options: ITerminalOptions = term.options;
-      strictEqual(options.cols, 80);
-      strictEqual(options.rows, 24);
+      strictEqual(options.lineHeight, 1);
+      strictEqual(options.cursorWidth, 1);
     });
     it('set options', async () => {
-      const options: ITerminalOptions = term.options;
-      throws(() => options.cols = 40);
-      throws(() => options.rows = 20);
       term.options.scrollback = 1;
       strictEqual(term.options.scrollback, 1);
       term.options= {
@@ -254,7 +245,7 @@ describe('Headless API Tests', function (): void {
 
   describe('buffer', () => {
     it('cursorX, cursorY', async () => {
-      term = new Terminal({ rows: 5, cols: 5 });
+      term = new Terminal({ rows: 5, cols: 5, allowProposedApi: true });
       strictEqual(term.buffer.active.cursorX, 0);
       strictEqual(term.buffer.active.cursorY, 0);
       await writeSync('foo');
@@ -275,7 +266,7 @@ describe('Headless API Tests', function (): void {
     });
 
     it('viewportY', async () => {
-      term = new Terminal({ rows: 5 });
+      term = new Terminal({ rows: 5, allowProposedApi: true });
       strictEqual(term.buffer.active.viewportY, 0);
       await writeSync('\n\n\n\n');
       strictEqual(term.buffer.active.viewportY, 0);
@@ -290,7 +281,7 @@ describe('Headless API Tests', function (): void {
     });
 
     it('baseY', async () => {
-      term = new Terminal({ rows: 5 });
+      term = new Terminal({ rows: 5, allowProposedApi: true });
       strictEqual(term.buffer.active.baseY, 0);
       await writeSync('\n\n\n\n');
       strictEqual(term.buffer.active.baseY, 0);
@@ -305,7 +296,7 @@ describe('Headless API Tests', function (): void {
     });
 
     it('length', async () => {
-      term = new Terminal({ rows: 5 });
+      term = new Terminal({ rows: 5, allowProposedApi: true });
       strictEqual(term.buffer.active.length, 5);
       await writeSync('\n\n\n\n');
       strictEqual(term.buffer.active.length, 5);
@@ -317,13 +308,13 @@ describe('Headless API Tests', function (): void {
 
     describe('getLine', () => {
       it('invalid index', async () => {
-        term = new Terminal({ rows: 5 });
+        term = new Terminal({ rows: 5, allowProposedApi: true });
         strictEqual(term.buffer.active.getLine(-1), undefined);
         strictEqual(term.buffer.active.getLine(5), undefined);
       });
 
       it('isWrapped', async () => {
-        term = new Terminal({ cols: 5 });
+        term = new Terminal({ cols: 5, allowProposedApi: true });
         strictEqual(term.buffer.active.getLine(0)!.isWrapped, false);
         strictEqual(term.buffer.active.getLine(1)!.isWrapped, false);
         await writeSync('abcde');
@@ -335,7 +326,7 @@ describe('Headless API Tests', function (): void {
       });
 
       it('translateToString', async () => {
-        term = new Terminal({ cols: 5 });
+        term = new Terminal({ cols: 5, allowProposedApi: true });
         strictEqual(term.buffer.active.getLine(0)!.translateToString(), '     ');
         strictEqual(term.buffer.active.getLine(0)!.translateToString(true), '');
         await writeSync('foo');
@@ -350,7 +341,7 @@ describe('Headless API Tests', function (): void {
       });
 
       it('getCell', async () => {
-        term = new Terminal({ cols: 5 });
+        term = new Terminal({ cols: 5, allowProposedApi: true });
         strictEqual(term.buffer.active.getLine(0)!.getCell(-1), undefined);
         strictEqual(term.buffer.active.getLine(0)!.getCell(5), undefined);
         strictEqual(term.buffer.active.getLine(0)!.getCell(0)!.getChars(), '');
@@ -366,7 +357,7 @@ describe('Headless API Tests', function (): void {
     });
 
     it('active, normal, alternate', async () => {
-      term = new Terminal({ cols: 5 });
+      term = new Terminal({ cols: 5, allowProposedApi: true });
       strictEqual(term.buffer.active.type, 'normal');
       strictEqual(term.buffer.normal.type, 'normal');
       strictEqual(term.buffer.alternate.type, 'alternate');

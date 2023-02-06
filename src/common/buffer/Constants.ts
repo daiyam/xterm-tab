@@ -3,8 +3,9 @@
  * @license MIT
  */
 
-export const DEFAULT_COLOR = 256;
+export const DEFAULT_COLOR = 0;
 export const DEFAULT_ATTR = (0 << 18) | (DEFAULT_COLOR << 9) | (256 << 0);
+export const DEFAULT_EXT = 0;
 
 export const CHAR_DATA_ATTR_INDEX = 0;
 export const CHAR_DATA_CHAR_INDEX = 1;
@@ -125,11 +126,19 @@ export const enum FgFlags {
 
 export const enum BgFlags {
   /**
-   * bit 27..32 (upper 3 unused)
+   * bit 27..32 (upper 2 unused)
    */
   ITALIC = 0x4000000,
   DIM = 0x8000000,
-  HAS_EXTENDED = 0x10000000
+  HAS_EXTENDED = 0x10000000,
+  PROTECTED = 0x20000000
+}
+
+export const enum ExtFlags {
+  /**
+   * bit 27..32 (upper 3 unused)
+   */
+  UNDERLINE_STYLE = 0x1C000000
 }
 
 export const enum UnderlineStyle {

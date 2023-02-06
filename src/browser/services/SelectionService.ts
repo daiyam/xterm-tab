@@ -10,12 +10,12 @@ import * as Browser from 'common/Platform';
 import { SelectionModel } from 'browser/selection/SelectionModel';
 import { CellData } from 'common/buffer/CellData';
 import { EventEmitter, IEvent } from 'common/EventEmitter';
-import { IMouseService, ISelectionService, IRenderService } from 'browser/services/Services';
+import { IMouseService, ISelectionService, IRenderService, ICoreBrowserService } from 'browser/services/Services';
 import { IBufferRange, ILinkifier2 } from 'browser/Types';
 import { IBufferService, IOptionsService, ICoreService } from 'common/services/Services';
 import { getCoordsRelativeToElement } from 'browser/input/Mouse';
 import { moveToCellSequence } from 'browser/input/MoveToCell';
-import { Disposable } from 'common/Lifecycle';
+import { Disposable, toDisposable } from 'common/Lifecycle';
 import { getRangeLength } from 'common/buffer/BufferRange';
 import { Content } from 'common/buffer/Constants';
 
@@ -109,14 +109,14 @@ export class SelectionService extends Disposable implements ISelectionService {
   private _oldSelectionStart: [number, number] | undefined = undefined;
   private _oldSelectionEnd: [number, number] | undefined = undefined;
 
-  private _onLinuxMouseSelection = this.register(new EventEmitter<string>());
-  public get onLinuxMouseSelection(): IEvent<string> { return this._onLinuxMouseSelection.event; }
-  private _onRedrawRequest = this.register(new EventEmitter<ISelectionRedrawRequestEvent>());
-  public get onRequestRedraw(): IEvent<ISelectionRedrawRequestEvent> { return this._onRedrawRequest.event; }
-  private _onSelectionChange = this.register(new EventEmitter<void>());
-  public get onSelectionChange(): IEvent<void> { return this._onSelectionChange.event; }
-  private _onRequestScrollLines = this.register(new EventEmitter<ISelectionRequestScrollLinesEvent>());
-  public get onRequestScrollLines(): IEvent<ISelectionRequestScrollLinesEvent> { return this._onRequestScrollLines.event; }
+  private readonly _onLinuxMouseSelection = this.register(new EventEmitter<string>());
+  public readonly onLinuxMouseSelection = this._onLinuxMouseSelection.event;
+  private readonly _onRedrawRequest = this.register(new EventEmitter<ISelectionRedrawRequestEvent>());
+  public readonly onRequestRedraw = this._onRedrawRequest.event;
+  private readonly _onSelectionChange = this.register(new EventEmitter<void>());
+  public readonly onSelectionChange = this._onSelectionChange.event;
+  private readonly _onRequestScrollLines = this.register(new EventEmitter<ISelectionRequestScrollLinesEvent>());
+  public readonly onRequestScrollLines = this._onRequestScrollLines.event;
 
   constructor(
     private readonly _element: HTMLElement,
@@ -126,29 +126,30 @@ export class SelectionService extends Disposable implements ISelectionService {
     @ICoreService private readonly _coreService: ICoreService,
     @IMouseService private readonly _mouseService: IMouseService,
     @IOptionsService private readonly _optionsService: IOptionsService,
-    @IRenderService private readonly _renderService: IRenderService
+    @IRenderService private readonly _renderService: IRenderService,
+    @ICoreBrowserService private readonly _coreBrowserService: ICoreBrowserService
   ) {
     super();
 
     // Init listeners
-    this._mouseMoveListener = event => this._onMouseMove(event as MouseEvent);
-    this._mouseUpListener = event => this._onMouseUp(event as MouseEvent);
+    this._mouseMoveListener = event => this._handleMouseMove(event as MouseEvent);
+    this._mouseUpListener = event => this._handleMouseUp(event as MouseEvent);
     this._coreService.onUserInput(() => {
       if (this.hasSelection) {
         this.clearSelection();
       }
     });
-    this._trimListener = this._bufferService.buffer.lines.onTrim(amount => this._onTrim(amount));
-    this.register(this._bufferService.buffers.onBufferActivate(e => this._onBufferActivate(e)));
+    this._trimListener = this._bufferService.buffer.lines.onTrim(amount => this._handleTrim(amount));
+    this.register(this._bufferService.buffers.onBufferActivate(e => this._handleBufferActivate(e)));
 
     this.enable();
 
     this._model = new SelectionModel(this._bufferService);
     this._activeSelectionMode = SelectionMode.NORMAL;
-  }
 
-  public dispose(): void {
-    this._removeMouseDownListeners();
+    this.register(toDisposable(() => {
+      this._removeMouseDownListeners();
+    }));
   }
 
   public reset(): void {
@@ -205,8 +206,12 @@ export class SelectionService extends Disposable implements ISelectionService {
         return '';
       }
 
+      // For column selection it's not enough to rely on final selection's swapping of reversed
+      // values, it also needs the x coordinates to swap independently of the y coordinate is needed
+      const startCol = start[0] < end[0] ? start[0] : end[0];
+      const endCol = start[0] < end[0] ? end[0] : start[0];
       for (let i = start[1]; i <= end[1]; i++) {
-        const lineText = buffer.translateBufferLineToString(i, true, start[0], end[0]);
+        const lineText = buffer.translateBufferLineToString(i, true, startCol, endCol);
         result.push(lineText);
       }
     } else {
@@ -262,7 +267,7 @@ export class SelectionService extends Disposable implements ISelectionService {
   public refresh(isLinuxMouseSelection?: boolean): void {
     // Queue the refresh for the renderer
     if (!this._refreshAnimationFrame) {
-      this._refreshAnimationFrame = window.requestAnimationFrame(() => this._refresh());
+      this._refreshAnimationFrame = this._coreBrowserService.window.requestAnimationFrame(() => this._refresh());
     }
 
     // If the platform is Linux and the refresh call comes from a mouse event,
@@ -302,6 +307,15 @@ export class SelectionService extends Disposable implements ISelectionService {
     }
 
     return this._areCoordsInSelection(coords, start, end);
+  }
+
+  public isCellInSelection(x: number, y: number): boolean {
+    const start = this._model.finalSelectionStart;
+    const end = this._model.finalSelectionEnd;
+    if (!start || !end) {
+      return false;
+    }
+    return this._areCoordsInSelection([x, y], start, end);
   }
 
   protected _areCoordsInSelection(coords: [number, number], start: [number, number], end: [number, number]): boolean {
@@ -357,8 +371,8 @@ export class SelectionService extends Disposable implements ISelectionService {
    * Handle the buffer being trimmed, adjust the selection position.
    * @param amount The amount the buffer is being trimmed.
    */
-  private _onTrim(amount: number): void {
-    const needsRefresh = this._model.onTrim(amount);
+  private _handleTrim(amount: number): void {
+    const needsRefresh = this._model.handleTrim(amount);
     if (needsRefresh) {
       this.refresh();
     }
@@ -389,8 +403,8 @@ export class SelectionService extends Disposable implements ISelectionService {
    * @param event The mouse event.
    */
   private _getMouseEventScrollAmount(event: MouseEvent): number {
-    let offset = getCoordsRelativeToElement(event, this._screenElement)[1];
-    const terminalHeight = this._renderService.dimensions.canvasHeight;
+    let offset = getCoordsRelativeToElement(this._coreBrowserService.window, event, this._screenElement)[1];
+    const terminalHeight = this._renderService.dimensions.css.canvas.height;
     if (offset >= 0 && offset <= terminalHeight) {
       return 0;
     }
@@ -420,7 +434,7 @@ export class SelectionService extends Disposable implements ISelectionService {
    * Handles te mousedown event, setting up for a new selection.
    * @param event The mousedown event.
    */
-  public onMouseDown(event: MouseEvent): void {
+  public handleMouseDown(event: MouseEvent): void {
     this._mouseDownTimeStamp = event.timeStamp;
     // If we have selection, we want the context menu on right click even if the
     // terminal is in mouse mode.
@@ -450,14 +464,14 @@ export class SelectionService extends Disposable implements ISelectionService {
     this._dragScrollAmount = 0;
 
     if (this._enabled && event.shiftKey) {
-      this._onIncrementalClick(event);
+      this._handleIncrementalClick(event);
     } else {
       if (event.detail === 1) {
-        this._onSingleClick(event);
+        this._handleSingleClick(event);
       } else if (event.detail === 2) {
-        this._onDoubleClick(event);
+        this._handleDoubleClick(event);
       } else if (event.detail === 3) {
-        this._onTripleClick(event);
+        this._handleTripleClick(event);
       }
     }
 
@@ -474,7 +488,7 @@ export class SelectionService extends Disposable implements ISelectionService {
       this._screenElement.ownerDocument.addEventListener('mousemove', this._mouseMoveListener);
       this._screenElement.ownerDocument.addEventListener('mouseup', this._mouseUpListener);
     }
-    this._dragScrollIntervalTimer = window.setInterval(() => this._dragScroll(), DRAG_SCROLL_INTERVAL);
+    this._dragScrollIntervalTimer = this._coreBrowserService.window.setInterval(() => this._dragScroll(), DRAG_SCROLL_INTERVAL);
   }
 
   /**
@@ -485,7 +499,7 @@ export class SelectionService extends Disposable implements ISelectionService {
       this._screenElement.ownerDocument.removeEventListener('mousemove', this._mouseMoveListener);
       this._screenElement.ownerDocument.removeEventListener('mouseup', this._mouseUpListener);
     }
-    clearInterval(this._dragScrollIntervalTimer);
+    this._coreBrowserService.window.clearInterval(this._dragScrollIntervalTimer);
     this._dragScrollIntervalTimer = undefined;
   }
 
@@ -494,7 +508,7 @@ export class SelectionService extends Disposable implements ISelectionService {
    * position.
    * @param event The mouse event.
    */
-  private _onIncrementalClick(event: MouseEvent): void {
+  private _handleIncrementalClick(event: MouseEvent): void {
     if (this._model.selectionStart) {
       this._model.selectionEnd = this._getMouseBufferCoords(event);
     }
@@ -505,7 +519,7 @@ export class SelectionService extends Disposable implements ISelectionService {
    * start position.
    * @param event The mouse event.
    */
-  private _onSingleClick(event: MouseEvent): void {
+  private _handleSingleClick(event: MouseEvent): void {
     this._model.selectionStartLength = 0;
     this._model.isSelectAllActive = false;
     this._activeSelectionMode = this.shouldColumnSelect(event) ? SelectionMode.COLUMN : SelectionMode.NORMAL;
@@ -539,7 +553,7 @@ export class SelectionService extends Disposable implements ISelectionService {
    * Performs a double click, selecting the current word.
    * @param event The mouse event.
    */
-  private _onDoubleClick(event: MouseEvent): void {
+  private _handleDoubleClick(event: MouseEvent): void {
     if (this._selectWordAtCursor(event, true)) {
       this._activeSelectionMode = SelectionMode.WORD;
     }
@@ -550,7 +564,7 @@ export class SelectionService extends Disposable implements ISelectionService {
    * select mode.
    * @param event The mouse event.
    */
-  private _onTripleClick(event: MouseEvent): void {
+  private _handleTripleClick(event: MouseEvent): void {
     const coords = this._getMouseBufferCoords(event);
     if (coords) {
       this._activeSelectionMode = SelectionMode.LINE;
@@ -571,7 +585,7 @@ export class SelectionService extends Disposable implements ISelectionService {
    * end of the selection and refreshing the selection.
    * @param event The mousemove event.
    */
-  private _onMouseMove(event: MouseEvent): void {
+  private _handleMouseMove(event: MouseEvent): void {
     // If the mousemove listener is active it means that a selection is
     // currently being made, we should stop propagation to prevent mouse events
     // to be sent to the pty.
@@ -683,12 +697,12 @@ export class SelectionService extends Disposable implements ISelectionService {
    * Handles the mouseup event, removing the mousedown listeners.
    * @param event The mouseup event.
    */
-  private _onMouseUp(event: MouseEvent): void {
+  private _handleMouseUp(event: MouseEvent): void {
     const timeElapsed = event.timeStamp - this._mouseDownTimeStamp;
 
     this._removeMouseDownListeners();
 
-    if (this.selectionText.length <= 1 && timeElapsed < ALT_CLICK_MOVE_CURSOR_TIME && event.altKey && this._optionsService.getOption('altClickMovesCursor')) {
+    if (this.selectionText.length <= 1 && timeElapsed < ALT_CLICK_MOVE_CURSOR_TIME && event.altKey && this._optionsService.rawOptions.altClickMovesCursor) {
       if (this._bufferService.buffer.ybase === this._bufferService.buffer.ydisp) {
         const coordinates = this._mouseService.getCoords(
           event,
@@ -739,30 +753,31 @@ export class SelectionService extends Disposable implements ISelectionService {
     this._onSelectionChange.fire();
   }
 
-  private _onBufferActivate(e: {activeBuffer: IBuffer, inactiveBuffer: IBuffer}): void {
+  private _handleBufferActivate(e: {activeBuffer: IBuffer, inactiveBuffer: IBuffer}): void {
     this.clearSelection();
     // Only adjust the selection on trim, shiftElements is rarely used (only in
     // reverseIndex) and delete in a splice is only ever used when the same
     // number of elements was just added. Given this is could actually be
     // beneficial to leave the selection as is for these cases.
     this._trimListener.dispose();
-    this._trimListener = e.activeBuffer.lines.onTrim(amount => this._onTrim(amount));
+    this._trimListener = e.activeBuffer.lines.onTrim(amount => this._handleTrim(amount));
   }
 
   /**
-   * Converts a viewport column to the character index on the buffer line, the
-   * latter takes into account wide characters.
-   * @param coords The coordinates to find the 2 index for.
+   * Converts a viewport column (0 to cols - 1) to the character index on the
+   * buffer line, the latter takes into account wide and null characters.
+   * @param bufferLine The buffer line to use.
+   * @param x The x index in the buffer line to convert.
    */
-  private _convertViewportColToCharacterIndex(bufferLine: IBufferLine, coords: [number, number]): number {
-    let charIndex = coords[0];
-    for (let i = 0; coords[0] >= i; i++) {
+  private _convertViewportColToCharacterIndex(bufferLine: IBufferLine, x: number): number {
+    let charIndex = x;
+    for (let i = 0; x >= i; i++) {
       const length = bufferLine.loadCell(i, this._workCell).getChars().length;
       if (this._workCell.getWidth() === 0) {
         // Wide characters aren't included in the line string so decrement the
         // index so the index is back on the wide character.
         charIndex--;
-      } else if (length > 1 && coords[0] !== i) {
+      } else if (length > 1 && x !== i) {
         // Emojis take up multiple characters, so adjust accordingly. For these
         // we don't want ot include the character at the column as we're
         // returning the start index in the string, not the end index.
@@ -809,7 +824,7 @@ export class SelectionService extends Disposable implements ISelectionService {
     const line = bufferLine.translateToString(false);
 
     // Get actual index, taking into consideration wide characters
-    let startIndex = this._convertViewportColToCharacterIndex(bufferLine, coords);
+    let startIndex = this._convertViewportColToCharacterIndex(bufferLine, coords[0]);
     let endIndex = startIndex;
 
     // Record offset to be used later
@@ -1007,7 +1022,7 @@ export class SelectionService extends Disposable implements ISelectionService {
   /**
    * Gets whether the character is considered a word separator by the select
    * word logic.
-   * @param char The character to check.
+   * @param cell The cell to check.
    */
   private _isCharWordSeparator(cell: CellData): boolean {
     // Zero width characters are never separators as they are always to the

@@ -5,13 +5,19 @@
 
 import { Disposable } from 'common/Lifecycle';
 import { addDisposableDomListener } from 'browser/Lifecycle';
-import { IColorSet, IViewport } from 'browser/Types';
-import { ICharSizeService, IRenderService } from 'browser/services/Services';
+import { IColorSet, IViewport, ReadonlyColorSet } from 'browser/Types';
+import { ICharSizeService, ICoreBrowserService, IRenderService, IThemeService } from 'browser/services/Services';
 import { IBufferService, IOptionsService } from 'common/services/Services';
 import { IBuffer } from 'common/buffer/Types';
-import { IRenderDimensions } from 'browser/renderer/Types';
+import { IRenderDimensions } from 'browser/renderer/shared/Types';
 
 const FALLBACK_SCROLL_BAR_WIDTH = 15;
+
+interface ISmoothScrollState {
+  startTime: number;
+  origin: number;
+  target: number;
+}
 
 /**
  * Represents the viewport of a terminal, the visible area within the larger buffer of output.
@@ -20,7 +26,7 @@ const FALLBACK_SCROLL_BAR_WIDTH = 15;
 export class Viewport extends Disposable implements IViewport {
   public scrollBarWidth: number = 0;
   private _currentRowHeight: number = 0;
-  private _currentScaledCellHeight: number = 0;
+  private _currentDeviceCellHeight: number = 0;
   private _lastRecordedBufferLength: number = 0;
   private _lastRecordedViewportHeight: number = 0;
   private _lastRecordedBufferHeight: number = 0;
@@ -36,16 +42,22 @@ export class Viewport extends Disposable implements IViewport {
 
   private _refreshAnimationFrame: number | null = null;
   private _ignoreNextScrollEvent: boolean = false;
+  private _smoothScrollState: ISmoothScrollState = {
+    startTime: 0,
+    origin: -1,
+    target: -1
+  };
 
   constructor(
     private readonly _scrollLines: (amount: number) => void,
     private readonly _viewportElement: HTMLElement,
     private readonly _scrollArea: HTMLElement,
-    private readonly _element: HTMLElement,
     @IBufferService private readonly _bufferService: IBufferService,
     @IOptionsService private readonly _optionsService: IOptionsService,
     @ICharSizeService private readonly _charSizeService: ICharSizeService,
-    @IRenderService private readonly _renderService: IRenderService
+    @IRenderService private readonly _renderService: IRenderService,
+    @ICoreBrowserService private readonly _coreBrowserService: ICoreBrowserService,
+    @IThemeService themeService: IThemeService
   ) {
     super();
 
@@ -53,7 +65,7 @@ export class Viewport extends Disposable implements IViewport {
     // Unfortunately the overlay scrollbar would be hidden underneath the screen element in that case,
     // therefore we account for a standard amount to make it visible
     this.scrollBarWidth = (this._viewportElement.offsetWidth - this._scrollArea.offsetWidth) || FALLBACK_SCROLL_BAR_WIDTH;
-    this.register(addDisposableDomListener(this._viewportElement, 'scroll', this._onScroll.bind(this)));
+    this.register(addDisposableDomListener(this._viewportElement, 'scroll', this._handleScroll.bind(this)));
 
     // Track properties used in performance critical code manually to avoid using slow getters
     this._activeBuffer = this._bufferService.buffer;
@@ -61,11 +73,15 @@ export class Viewport extends Disposable implements IViewport {
     this._renderDimensions = this._renderService.dimensions;
     this.register(this._renderService.onDimensionsChange(e => this._renderDimensions = e));
 
+    this._handleThemeChange(themeService.colors);
+    this.register(themeService.onChangeColors(e => this._handleThemeChange(e)));
+    this.register(this._optionsService.onSpecificOptionChange('scrollback', () => this.syncScrollArea()));
+
     // Perform this async to ensure the ICharSizeService is ready.
     setTimeout(() => this.syncScrollArea(), 0);
   }
 
-  public onThemeChange(colors: IColorSet): void {
+  private _handleThemeChange(colors: ReadonlyColorSet): void {
     this._viewportElement.style.backgroundColor = colors.background.css;
   }
 
@@ -77,21 +93,21 @@ export class Viewport extends Disposable implements IViewport {
     if (immediate) {
       this._innerRefresh();
       if (this._refreshAnimationFrame !== null) {
-        cancelAnimationFrame(this._refreshAnimationFrame);
+        this._coreBrowserService.window.cancelAnimationFrame(this._refreshAnimationFrame);
       }
       return;
     }
     if (this._refreshAnimationFrame === null) {
-      this._refreshAnimationFrame = requestAnimationFrame(() => this._innerRefresh());
+      this._refreshAnimationFrame = this._coreBrowserService.window.requestAnimationFrame(() => this._innerRefresh());
     }
   }
 
   private _innerRefresh(): void {
     if (this._charSizeService.height > 0) {
-      this._currentRowHeight = this._renderService.dimensions.scaledCellHeight / window.devicePixelRatio;
-      this._currentScaledCellHeight = this._renderService.dimensions.scaledCellHeight;
+      this._currentRowHeight = this._renderService.dimensions.device.cell.height / this._coreBrowserService.dpr;
+      this._currentDeviceCellHeight = this._renderService.dimensions.device.cell.height;
       this._lastRecordedViewportHeight = this._viewportElement.offsetHeight;
-      const newBufferHeight = Math.round(this._currentRowHeight * this._lastRecordedBufferLength) + (this._lastRecordedViewportHeight - this._renderService.dimensions.canvasHeight);
+      const newBufferHeight = Math.round(this._currentRowHeight * this._lastRecordedBufferLength) + (this._lastRecordedViewportHeight - this._renderService.dimensions.css.canvas.height);
       if (this._lastRecordedBufferHeight !== newBufferHeight) {
         this._lastRecordedBufferHeight = newBufferHeight;
         this._scrollArea.style.height = this._lastRecordedBufferHeight + 'px';
@@ -122,7 +138,7 @@ export class Viewport extends Disposable implements IViewport {
     }
 
     // If viewport height changed
-    if (this._lastRecordedViewportHeight !== this._renderService.dimensions.canvasHeight) {
+    if (this._lastRecordedViewportHeight !== this._renderService.dimensions.css.canvas.height) {
       this._refresh(immediate);
       return;
     }
@@ -134,7 +150,7 @@ export class Viewport extends Disposable implements IViewport {
     }
 
     // If row height changed
-    if (this._renderDimensions.scaledCellHeight !== this._currentScaledCellHeight) {
+    if (this._renderDimensions.device.cell.height !== this._currentDeviceCellHeight) {
       this._refresh(immediate);
       return;
     }
@@ -145,7 +161,7 @@ export class Viewport extends Disposable implements IViewport {
    * terminal to scroll to it.
    * @param ev The scroll event.
    */
-  private _onScroll(ev: Event): void {
+  private _handleScroll(ev: Event): void {
     // Record current scroll top position
     this._lastScrollTop = this._viewportElement.scrollTop;
 
@@ -166,6 +182,37 @@ export class Viewport extends Disposable implements IViewport {
     const newRow = Math.round(this._lastScrollTop / this._currentRowHeight);
     const diff = newRow - this._bufferService.buffer.ydisp;
     this._scrollLines(diff);
+  }
+
+  private _smoothScroll(): void {
+    // Check valid state
+    if (this._isDisposed || this._smoothScrollState.origin === -1 || this._smoothScrollState.target === -1) {
+      return;
+    }
+
+    // Calculate position complete
+    const percent = this._smoothScrollPercent();
+    this._viewportElement.scrollTop = this._smoothScrollState.origin + Math.round(percent * (this._smoothScrollState.target - this._smoothScrollState.origin));
+
+    // Continue or finish smooth scroll
+    if (percent < 1) {
+      this._coreBrowserService.window.requestAnimationFrame(() => this._smoothScroll());
+    } else {
+      this._clearSmoothScrollState();
+    }
+  }
+
+  private _smoothScrollPercent(): number {
+    if (!this._optionsService.rawOptions.smoothScrollDuration || !this._smoothScrollState.startTime) {
+      return 1;
+    }
+    return Math.max(Math.min((Date.now() - this._smoothScrollState.startTime) / this._optionsService.rawOptions.smoothScrollDuration, 1), 0);
+  }
+
+  private _clearSmoothScrollState(): void {
+    this._smoothScrollState.startTime = 0;
+    this._smoothScrollState.origin = -1;
+    this._smoothScrollState.target = -1;
   }
 
   /**
@@ -191,12 +238,28 @@ export class Viewport extends Disposable implements IViewport {
    * `Viewport`.
    * @param ev The mouse wheel event.
    */
-  public onWheel(ev: WheelEvent): boolean {
+  public handleWheel(ev: WheelEvent): boolean {
     const amount = this._getPixelsScrolled(ev);
     if (amount === 0) {
       return false;
     }
-    this._viewportElement.scrollTop += amount;
+    if (!this._optionsService.rawOptions.smoothScrollDuration) {
+      this._viewportElement.scrollTop += amount;
+    } else {
+      this._smoothScrollState.startTime = Date.now();
+      if (this._smoothScrollPercent() < 1) {
+        this._smoothScrollState.origin = this._viewportElement.scrollTop;
+        if (this._smoothScrollState.target === -1) {
+          this._smoothScrollState.target = this._viewportElement.scrollTop + amount;
+        } else {
+          this._smoothScrollState.target += amount;
+        }
+        this._smoothScrollState.target = Math.max(Math.min(this._smoothScrollState.target, this._viewportElement.scrollHeight), 0);
+        this._smoothScroll();
+      } else {
+        this._clearSmoothScrollState();
+      }
+    }
     return this._bubbleScroll(ev, amount);
   }
 
@@ -214,6 +277,33 @@ export class Viewport extends Disposable implements IViewport {
       amount *= this._currentRowHeight * this._bufferService.rows;
     }
     return amount;
+  }
+
+
+  public getBufferElements(startLine: number, endLine?: number): { bufferElements: HTMLElement[], cursorElement?: HTMLElement } {
+    let currentLine: string = '';
+    let cursorElement: HTMLElement | undefined;
+    const bufferElements: HTMLElement[] = [];
+    const end = endLine ?? this._bufferService.buffer.lines.length;
+    const lines = this._bufferService.buffer.lines;
+    for (let i = startLine; i < end; i++) {
+      const line = lines.get(i);
+      if (!line) {
+        continue;
+      }
+      const isWrapped = lines.get(i + 1)?.isWrapped;
+      currentLine += line.translateToString(!isWrapped);
+      if (!isWrapped || i === lines.length - 1) {
+        const div = document.createElement('div');
+        div.textContent = currentLine;
+        bufferElements.push(div);
+        if (currentLine.length > 0) {
+          cursorElement = div;
+        }
+        currentLine = '';
+      }
+    }
+    return { bufferElements, cursorElement };
   }
 
   /**
@@ -256,7 +346,7 @@ export class Viewport extends Disposable implements IViewport {
    * Handles the touchstart event, recording the touch occurred.
    * @param ev The touch event.
    */
-  public onTouchStart(ev: TouchEvent): void {
+  public handleTouchStart(ev: TouchEvent): void {
     this._lastTouchY = ev.touches[0].pageY;
   }
 
@@ -264,7 +354,7 @@ export class Viewport extends Disposable implements IViewport {
    * Handles the touchmove event, scrolling the viewport if the position shifted.
    * @param ev The touch event.
    */
-  public onTouchMove(ev: TouchEvent): boolean {
+  public handleTouchMove(ev: TouchEvent): boolean {
     const deltaY = this._lastTouchY - ev.touches[0].pageY;
     this._lastTouchY = ev.touches[0].pageY;
     if (deltaY === 0) {

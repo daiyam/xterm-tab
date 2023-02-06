@@ -151,6 +151,25 @@
     color: transparent;
 }
 
+.xterm .xterm-accessibility-buffer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    padding: .5em;
+    background: #000;
+    color: #fff;
+    opacity: 0;
+    overflow: scroll;
+    overflow-x: hidden;
+}
+
+.xterm .xterm-accessibility-buffer:focus {
+    opacity: 1;
+    z-index: 20;
+}
+
 .xterm .live-region {
     position: absolute;
     left: -9999px;
@@ -163,9 +182,11 @@
     opacity: 0.5;
 }
 
-.xterm-underline {
-    text-decoration: underline;
-}
+.xterm-underline-1 { text-decoration: underline; }
+.xterm-underline-2 { text-decoration: double underline; }
+.xterm-underline-3 { text-decoration: wavy underline; }
+.xterm-underline-4 { text-decoration: dotted underline; }
+.xterm-underline-5 { text-decoration: dashed underline; }
 
 .xterm-strikethrough {
     text-decoration: line-through;

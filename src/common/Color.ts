@@ -3,7 +3,18 @@
  * @license MIT
  */
 
+import { isNode } from 'common/Platform';
 import { IColor, IColorRGB } from 'common/Types';
+
+let $r = 0;
+let $g = 0;
+let $b = 0;
+let $a = 0;
+
+export const NULL_COLOR: IColor = {
+  css: '#00000000',
+  rgba: 0
+};
 
 /**
  * Helper functions where the source type is "channels" (individual color channels as numbers).
@@ -29,8 +40,8 @@ export namespace channels {
  */
 export namespace color {
   export function blend(bg: IColor, fg: IColor): IColor {
-    const a = (fg.rgba & 0xFF) / 255;
-    if (a === 1) {
+    $a = (fg.rgba & 0xFF) / 255;
+    if ($a === 1) {
       return {
         css: fg.css,
         rgba: fg.rgba
@@ -42,11 +53,11 @@ export namespace color {
     const bgR = (bg.rgba >> 24) & 0xFF;
     const bgG = (bg.rgba >> 16) & 0xFF;
     const bgB = (bg.rgba >> 8) & 0xFF;
-    const r = bgR + Math.round((fgR - bgR) * a);
-    const g = bgG + Math.round((fgG - bgG) * a);
-    const b = bgB + Math.round((fgB - bgB) * a);
-    const css = channels.toCss(r, g, b);
-    const rgba = channels.toRgba(r, g, b);
+    $r = bgR + Math.round((fgR - bgR) * $a);
+    $g = bgG + Math.round((fgG - bgG) * $a);
+    $b = bgB + Math.round((fgB - bgB) * $a);
+    const css = channels.toCss($r, $g, $b);
+    const rgba = channels.toRgba($r, $g, $b);
     return { css, rgba };
   }
 
@@ -68,20 +79,25 @@ export namespace color {
 
   export function opaque(color: IColor): IColor {
     const rgbaColor = (color.rgba | 0xFF) >>> 0;
-    const [r, g, b] = rgba.toChannels(rgbaColor);
+    [$r, $g, $b] = rgba.toChannels(rgbaColor);
     return {
-      css: channels.toCss(r, g, b),
+      css: channels.toCss($r, $g, $b),
       rgba: rgbaColor
     };
   }
 
   export function opacity(color: IColor, opacity: number): IColor {
-    const a = Math.round(opacity * 0xFF);
-    const [r, g, b] = rgba.toChannels(color.rgba);
+    $a = Math.round(opacity * 0xFF);
+    [$r, $g, $b] = rgba.toChannels(color.rgba);
     return {
-      css: channels.toCss(r, g, b, a),
-      rgba: channels.toRgba(r, g, b, a)
+      css: channels.toCss($r, $g, $b, $a),
+      rgba: channels.toRgba($r, $g, $b, $a)
     };
+  }
+
+  export function multiplyOpacity(color: IColor, factor: number): IColor {
+    $a = color.rgba & 0xFF;
+    return opacity(color, ($a * factor) / 0xFF);
   }
 
   export function toColorRGB(color: IColor): IColorRGB {
@@ -93,20 +109,97 @@ export namespace color {
  * Helper functions where the source type is "css" (string: '#rgb', '#rgba', '#rrggbb', '#rrggbbaa').
  */
 export namespace css {
-  export function toColor(css: string): IColor {
-    switch (css.length) {
-      case 7: // #rrggbb
-        return {
-          css,
-          rgba: (parseInt(css.slice(1), 16) << 8 | 0xFF) >>> 0
-        };
-      case 9: // #rrggbbaa
-        return {
-          css,
-          rgba: parseInt(css.slice(1), 16) >>> 0
-        };
+  let $ctx: CanvasRenderingContext2D | undefined;
+  let $litmusColor: CanvasGradient | undefined;
+  if (!isNode) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    const ctx = canvas.getContext('2d', {
+      willReadFrequently: true
+    });
+    if (ctx) {
+      $ctx = ctx;
+      $ctx.globalCompositeOperation = 'copy';
+      $litmusColor = $ctx.createLinearGradient(0, 0, 1, 1);
     }
-    throw new Error('css.toColor: Unsupported css format');
+  }
+
+  /**
+   * Converts a css string to an IColor, this should handle all valid CSS color strings and will
+   * throw if it's invalid. The ideal format to use is `#rrggbb[aa]` as it's the fastest to parse.
+   *
+   * Only `#rgb[a]`, `#rrggbb[aa]`, `rgb()` and `rgba()` formats are supported when run in a Node
+   * environment.
+   */
+  export function toColor(css: string): IColor {
+    // Formats: #rgb[a] and #rrggbb[aa]
+    if (css.match(/#[\da-f]{3,8}/i)) {
+      switch (css.length) {
+        case 4: { // #rgb
+          $r = parseInt(css.slice(1, 2).repeat(2), 16);
+          $g = parseInt(css.slice(2, 3).repeat(2), 16);
+          $b = parseInt(css.slice(3, 4).repeat(2), 16);
+          return rgba.toColor($r, $g, $b);
+        }
+        case 5: { // #rgba
+          $r = parseInt(css.slice(1, 2).repeat(2), 16);
+          $g = parseInt(css.slice(2, 3).repeat(2), 16);
+          $b = parseInt(css.slice(3, 4).repeat(2), 16);
+          $a = parseInt(css.slice(4, 5).repeat(2), 16);
+          return rgba.toColor($r, $g, $b, $a);
+        }
+        case 7: // #rrggbb
+          return {
+            css,
+            rgba: (parseInt(css.slice(1), 16) << 8 | 0xFF) >>> 0
+          };
+        case 9: // #rrggbbaa
+          return {
+            css,
+            rgba: parseInt(css.slice(1), 16) >>> 0
+          };
+      }
+    }
+
+    // Formats: rgb() or rgba()
+    const rgbaMatch = css.match(/rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(,\s*(0|1|\d?\.(\d+))\s*)?\)/);
+    if (rgbaMatch) {
+      $r = parseInt(rgbaMatch[1]);
+      $g = parseInt(rgbaMatch[2]);
+      $b = parseInt(rgbaMatch[3]);
+      $a = Math.round((rgbaMatch[5] === undefined ? 1 : parseFloat(rgbaMatch[5])) * 0xFF);
+      return rgba.toColor($r, $g, $b, $a);
+    }
+
+    // Validate the context is available for canvas-based color parsing
+    if (!$ctx || !$litmusColor) {
+      throw new Error('css.toColor: Unsupported css format');
+    }
+
+    // Validate the color using canvas fillStyle
+    // See https://html.spec.whatwg.org/multipage/canvas.html#fill-and-stroke-styles
+    $ctx.fillStyle = $litmusColor;
+    $ctx.fillStyle = css;
+    if (typeof $ctx.fillStyle !== 'string') {
+      throw new Error('css.toColor: Unsupported css format');
+    }
+
+    $ctx.fillRect(0, 0, 1, 1);
+    [$r, $g, $b, $a] = $ctx.getImageData(0, 0, 1, 1).data;
+
+    // Validate the color is non-transparent as color hue gets lost when drawn to the canvas
+    if ($a !== 0xFF) {
+      throw new Error('css.toColor: Unsupported css format');
+    }
+
+    // Extract the color from the canvas' fillStyle property which exposes the color value in rgba()
+    // format
+    // See https://html.spec.whatwg.org/multipage/canvas.html#serialisation-of-a-color
+    return {
+      rgba: channels.toRgba($r, $g, $b, $a),
+      css
+    };
   }
 }
 
@@ -172,7 +265,7 @@ export namespace rgba {
         const resultA = reduceLuminance(bgRgba, fgRgba, ratio);
         const resultARatio = contrastRatio(bgL, rgb.relativeLuminance(resultA >> 8));
         if (resultARatio < ratio) {
-          const resultB = increaseLuminance(bgRgba, bgRgba, ratio);
+          const resultB = increaseLuminance(bgRgba, fgRgba, ratio);
           const resultBRatio = contrastRatio(bgL, rgb.relativeLuminance(resultB >> 8));
           return resultARatio > resultBRatio ? resultA : resultB;
         }
@@ -181,7 +274,7 @@ export namespace rgba {
       const resultA = increaseLuminance(bgRgba, fgRgba, ratio);
       const resultARatio = contrastRatio(bgL, rgb.relativeLuminance(resultA >> 8));
       if (resultARatio < ratio) {
-        const resultB = reduceLuminance(bgRgba, bgRgba, ratio);
+        const resultB = reduceLuminance(bgRgba, fgRgba, ratio);
         const resultBRatio = contrastRatio(bgL, rgb.relativeLuminance(resultB >> 8));
         return resultARatio > resultBRatio ? resultA : resultB;
       }
@@ -235,10 +328,10 @@ export namespace rgba {
     return [(value >> 24) & 0xFF, (value >> 16) & 0xFF, (value >> 8) & 0xFF, value & 0xFF];
   }
 
-  export function toColor(r: number, g: number, b: number): IColor {
+  export function toColor(r: number, g: number, b: number, a?: number): IColor {
     return {
-      css: channels.toCss(r, g, b),
-      rgba: channels.toRgba(r, g, b)
+      css: channels.toCss(r, g, b, a),
+      rgba: channels.toRgba(r, g, b, a)
     };
   }
 }

@@ -7,11 +7,9 @@ import { assert } from 'chai';
 import { MockViewport, MockCompositionHelper, MockRenderer, TestTerminal } from 'browser/TestUtils.test';
 import { DEFAULT_ATTR_DATA } from 'common/buffer/BufferLine';
 import { CellData } from 'common/buffer/CellData';
-import { IBufferService, IUnicodeService } from 'common/services/Services';
-import { Linkifier } from 'browser/Linkifier';
-import { MockLogService, MockUnicodeService } from 'common/TestUtils.test';
-import { IRegisteredLinkMatcher, IMouseZoneManager, IMouseZone } from 'browser/Types';
-import { IMarker, ITerminalOptions } from 'common/Types';
+import { MockUnicodeService } from 'common/TestUtils.test';
+import { IMarker } from 'common/Types';
+import { ICoreService } from 'common/services/Services';
 
 const INIT_COLS = 80;
 const INIT_ROWS = 24;
@@ -50,11 +48,10 @@ describe('Terminal', () => {
   });
 
   describe('events', () => {
-    // TODO: Add an onData test back
-    // it('should fire the onData evnet', (done) => {
-    //   term.onData(() => done());
-    //   term.handler('fake');
-    // });
+    it('should fire the onData evnet', (done) => {
+      term.onData(() => done());
+      term.coreService.triggerDataEvent('fake');
+    });
     it('should fire the onCursorMove event', () => {
       return new Promise<void>(async r => {
         term.onCursorMove(() => r());
@@ -472,7 +469,7 @@ describe('Terminal', () => {
 
       describe('when scrollback === 0', () => {
         beforeEach(() => {
-          term.optionsService.setOption('scrollback', 0);
+          term.optionsService.options.scrollback = 0;
           assert.equal(term.buffer.lines.maxLength, INIT_ROWS);
         });
 
@@ -1044,340 +1041,6 @@ describe('Terminal', () => {
     });
   });
 
-  describe('Linkifier unicode handling', () => {
-    let terminal: TestTerminal;
-    let linkifier: TestLinkifier;
-    let mouseZoneManager: TestMouseZoneManager;
-
-    // other than the tests above unicode testing needs the full terminal instance
-    // to get the special handling of fullwidth, surrogate and combining chars in the input handler
-    beforeEach(() => {
-      terminal = new TestTerminal({ cols: 10, rows: 5 });
-      linkifier = new TestLinkifier((terminal as any)._bufferService, terminal.unicodeService);
-      mouseZoneManager = new TestMouseZoneManager();
-      linkifier.attachToDom({} as any, mouseZoneManager);
-    });
-
-    function assertLinkifiesInTerminal(rowText: string, linkMatcherRegex: RegExp, links: { x1: number, y1: number, x2: number, y2: number }[]): Promise<void> {
-      return new Promise(async r => {
-        await terminal.writeP(rowText);
-        linkifier.registerLinkMatcher(linkMatcherRegex, () => { });
-        linkifier.linkifyRows();
-        // Allow linkify to happen
-        setTimeout(() => {
-          assert.equal(mouseZoneManager.zones.length, links.length);
-          links.forEach((l, i) => {
-            assert.equal(mouseZoneManager.zones[i].x1, l.x1 + 1);
-            assert.equal(mouseZoneManager.zones[i].x2, l.x2 + 1);
-            assert.equal(mouseZoneManager.zones[i].y1, l.y1 + 1);
-            assert.equal(mouseZoneManager.zones[i].y2, l.y2 + 1);
-          });
-          r();
-        }, 0);
-      });
-    }
-
-    describe('unicode before the match', () => {
-      it('combining - match within one line', () => {
-        return assertLinkifiesInTerminal('e\u0301e\u0301e\u0301 foo', /foo/, [{ x1: 4, x2: 7, y1: 0, y2: 0 }]);
-      });
-      it('combining - match over two lines', () => {
-        return assertLinkifiesInTerminal('e\u0301e\u0301e\u0301     foo', /foo/, [{ x1: 8, x2: 1, y1: 0, y2: 1 }]);
-      });
-      it('surrogate - match within one line', () => {
-        return assertLinkifiesInTerminal('𝄞𝄞𝄞 foo', /foo/, [{ x1: 4, x2: 7, y1: 0, y2: 0 }]);
-      });
-      it('surrogate - match over two lines', () => {
-        return assertLinkifiesInTerminal('𝄞𝄞𝄞     foo', /foo/, [{ x1: 8, x2: 1, y1: 0, y2: 1 }]);
-      });
-      it('combining surrogate - match within one line', () => {
-        return assertLinkifiesInTerminal('𓂀\u0301𓂀\u0301𓂀\u0301 foo', /foo/, [{ x1: 4, x2: 7, y1: 0, y2: 0 }]);
-      });
-      it('combining surrogate - match over two lines', () => {
-        return assertLinkifiesInTerminal('𓂀\u0301𓂀\u0301𓂀\u0301     foo', /foo/, [{ x1: 8, x2: 1, y1: 0, y2: 1 }]);
-      });
-      it('fullwidth - match within one line', () => {
-        return assertLinkifiesInTerminal('１２ foo', /foo/, [{ x1: 5, x2: 8, y1: 0, y2: 0 }]);
-      });
-      it('fullwidth - match over two lines', () => {
-        return assertLinkifiesInTerminal('１２    foo', /foo/, [{ x1: 8, x2: 1, y1: 0, y2: 1 }]);
-      });
-      it('combining fullwidth - match within one line', () => {
-        return assertLinkifiesInTerminal('￥\u0301￥\u0301 foo', /foo/, [{ x1: 5, x2: 8, y1: 0, y2: 0 }]);
-      });
-      it('combining fullwidth - match over two lines', () => {
-        return assertLinkifiesInTerminal('￥\u0301￥\u0301    foo', /foo/, [{ x1: 8, x2: 1, y1: 0, y2: 1 }]);
-      });
-    });
-    describe('unicode within the match', () => {
-      it('combining - match within one line', () => {
-        return assertLinkifiesInTerminal('test cafe\u0301', /cafe\u0301/, [{ x1: 5, x2: 9, y1: 0, y2: 0 }]);
-      });
-      it('combining - match over two lines', () => {
-        return assertLinkifiesInTerminal('testtest cafe\u0301', /cafe\u0301/, [{ x1: 9, x2: 3, y1: 0, y2: 1 }]);
-      });
-      it('surrogate - match within one line', () => {
-        return assertLinkifiesInTerminal('test a𝄞b', /a𝄞b/, [{ x1: 5, x2: 8, y1: 0, y2: 0 }]);
-      });
-      it('surrogate - match over two lines', () => {
-        return assertLinkifiesInTerminal('testtest a𝄞b', /a𝄞b/, [{ x1: 9, x2: 2, y1: 0, y2: 1 }]);
-      });
-      it('combining surrogate - match within one line', () => {
-        return assertLinkifiesInTerminal('test a𓂀\u0301b', /a𓂀\u0301b/, [{ x1: 5, x2: 8, y1: 0, y2: 0 }]);
-      });
-      it('combining surrogate - match over two lines', () => {
-        return assertLinkifiesInTerminal('testtest a𓂀\u0301b', /a𓂀\u0301b/, [{ x1: 9, x2: 2, y1: 0, y2: 1 }]);
-      });
-      it('fullwidth - match within one line', () => {
-        return assertLinkifiesInTerminal('test a１b', /a１b/, [{ x1: 5, x2: 9, y1: 0, y2: 0 }]);
-      });
-      it('fullwidth - match over two lines', () => {
-        return assertLinkifiesInTerminal('testtest a１b', /a１b/, [{ x1: 9, x2: 3, y1: 0, y2: 1 }]);
-      });
-      it('combining fullwidth - match within one line', () => {
-        return assertLinkifiesInTerminal('test a￥\u0301b', /a￥\u0301b/, [{ x1: 5, x2: 9, y1: 0, y2: 0 }]);
-      });
-      it('combining fullwidth - match over two lines', () => {
-        return assertLinkifiesInTerminal('testtest a￥\u0301b', /a￥\u0301b/, [{ x1: 9, x2: 3, y1: 0, y2: 1 }]);
-      });
-    });
-  });
-
-  describe('Buffer.stringIndexToBufferIndex', () => {
-    let terminal: TestTerminal;
-
-    beforeEach(() => {
-      terminal = new TestTerminal({ rows: 5, cols: 10, scrollback: 5 });
-    });
-
-    it('multiline ascii', async () => {
-      const input = 'This is ASCII text spanning multiple lines.';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      for (let i = 0; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([(i / terminal.cols) | 0, i % terminal.cols], bufferIndex);
-      }
-    });
-
-    it('combining e\u0301 in a sentence', async () => {
-      const input = 'Sitting in the cafe\u0301 drinking coffee.';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      for (let i = 0; i < 19; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([(i / terminal.cols) | 0, i % terminal.cols], bufferIndex);
-      }
-      // string index 18 & 19 point to combining char e\u0301 ---> same buffer Index
-      assert.deepEqual(
-        terminal.buffer.stringIndexToBufferIndex(0, 18),
-        terminal.buffer.stringIndexToBufferIndex(0, 19));
-      // after the combining char every string index has an offset of -1
-      for (let i = 19; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([((i - 1) / terminal.cols) | 0, (i - 1) % terminal.cols], bufferIndex);
-      }
-    });
-
-    it('multiline combining e\u0301', async () => {
-      const input = 'e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301e\u0301';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      // every buffer cell index contains 2 string indices
-      for (let i = 0; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([((i >> 1) / terminal.cols) | 0, (i >> 1) % terminal.cols], bufferIndex);
-      }
-    });
-
-    it('surrogate char in a sentence', async () => {
-      const input = 'The 𝄞 is a clef widely used in modern notation.';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      for (let i = 0; i < 5; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([(i / terminal.cols) | 0, i % terminal.cols], bufferIndex);
-      }
-      // string index 4 & 5 point to surrogate char 𝄞 ---> same buffer Index
-      assert.deepEqual(
-        terminal.buffer.stringIndexToBufferIndex(0, 4),
-        terminal.buffer.stringIndexToBufferIndex(0, 5));
-      // after the combining char every string index has an offset of -1
-      for (let i = 5; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([((i - 1) / terminal.cols) | 0, (i - 1) % terminal.cols], bufferIndex);
-      }
-    });
-
-    it('multiline surrogate char', async () => {
-      const input = '𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞𝄞';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      // every buffer cell index contains 2 string indices
-      for (let i = 0; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([((i >> 1) / terminal.cols) | 0, (i >> 1) % terminal.cols], bufferIndex);
-      }
-    });
-
-    it('surrogate char with combining', async () => {
-      // eye of Ra with acute accent - string length of 3
-      const input = '𓂀\u0301 - the eye hiroglyph with an acute accent.';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      // index 0..2 should map to 0
-      assert.deepEqual([0, 0], terminal.buffer.stringIndexToBufferIndex(0, 1));
-      assert.deepEqual([0, 0], terminal.buffer.stringIndexToBufferIndex(0, 2));
-      for (let i = 2; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([((i - 2) / terminal.cols) | 0, (i - 2) % terminal.cols], bufferIndex);
-      }
-    });
-
-    it('multiline surrogate with combining', async () => {
-      const input = '𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301𓂀\u0301';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      // every buffer cell index contains 3 string indices
-      for (let i = 0; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([(((i / 3) | 0) / terminal.cols) | 0, ((i / 3) | 0) % terminal.cols], bufferIndex);
-      }
-    });
-
-    it('fullwidth chars', async () => {
-      const input = 'These １２３ are some fat numbers.';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      for (let i = 0; i < 6; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([(i / terminal.cols) | 0, i % terminal.cols], bufferIndex);
-      }
-      // string index 6, 7, 8 take 2 cells
-      assert.deepEqual([0, 8], terminal.buffer.stringIndexToBufferIndex(0, 7));
-      assert.deepEqual([1, 0], terminal.buffer.stringIndexToBufferIndex(0, 8));
-      // rest of the string has offset of +3
-      for (let i = 9; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([((i + 3) / terminal.cols) | 0, (i + 3) % terminal.cols], bufferIndex);
-      }
-    });
-
-    it('multiline fullwidth chars', async () => {
-      const input = '１２３４５６７８９０１２３４５６７８９０';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      for (let i = 9; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i);
-        assert.deepEqual([((i << 1) / terminal.cols) | 0, (i << 1) % terminal.cols], bufferIndex);
-      }
-    });
-
-    it('fullwidth combining with emoji - match emoji cell', async () => {
-      const input = 'Lots of ￥\u0301 make me 😃.';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      const stringIndex = s.match(/😃/)!.index!;
-      const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, stringIndex);
-      assert(terminal.buffer.lines.get(bufferIndex[0])!.loadCell(bufferIndex[1], new CellData()).getChars(), '😃');
-    });
-
-    it('multiline fullwidth chars with offset 1 (currently tests for broken behavior)', async () => {
-      const input = 'a１２３４５６７８９０１２３４５６７８９０';
-      // the 'a' at the beginning moves all fullwidth chars one to the right
-      // now the end of the line contains a dangling empty cell since
-      // the next fullwidth char has to wrap early
-      // the dangling last cell is wrongly added in the string
-      // --> fixable after resolving #1685
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      for (let i = 10; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i, true);
-        const j = (i - 0) << 1;
-        assert.deepEqual([(j / terminal.cols) | 0, j % terminal.cols], bufferIndex);
-      }
-    });
-
-    it('test fully wrapped buffer up to last char', async () => {
-      const input = Array(6).join('1234567890');
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      for (let i = 0; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i, true);
-        assert.equal(input[i], terminal.buffer.lines.get(bufferIndex[0])!.loadCell(bufferIndex[1], new CellData()).getChars());
-      }
-    });
-
-    it('test fully wrapped buffer up to last char with full width odd', async () => {
-      const input = 'a￥\u0301a￥\u0301a￥\u0301a￥\u0301a￥\u0301a￥\u0301a￥\u0301a￥\u0301'
-        + 'a￥\u0301a￥\u0301a￥\u0301a￥\u0301a￥\u0301a￥\u0301a￥\u0301';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(input, s);
-      for (let i = 0; i < input.length; ++i) {
-        const bufferIndex = terminal.buffer.stringIndexToBufferIndex(0, i, true);
-        assert.equal(
-          (!(i % 3))
-            ? input[i]
-            : (i % 3 === 1)
-              ? input.slice(i, i + 2)
-              : input.slice(i - 1, i + 1),
-          terminal.buffer.lines.get(bufferIndex[0])!.loadCell(bufferIndex[1], new CellData()).getChars());
-      }
-    });
-
-    it('should handle \t in lines correctly', async () => {
-      const input = '\thttps://google.de';
-      await terminal.writeP(input);
-      const s = terminal.buffer.iterator(true).next().content;
-      assert.equal(s, '\thttps://google.de');
-    });
-  });
-
-  describe('BufferStringIterator', function (): void {
-    it('iterator does not overflow buffer limits', async () => {
-      const terminal = new TestTerminal({ rows: 5, cols: 10, scrollback: 5 });
-      const data = [
-        'aaaaaaaaaa',
-        'aaaaaaaaa\n',
-        'aaaaaaaaaa',
-        'aaaaaaaaa\n',
-        'aaaaaaaaaa',
-        'aaaaaaaaaa',
-        'aaaaaaaaaa',
-        'aaaaaaaaa\n',
-        'aaaaaaaaaa',
-        'aaaaaaaaaa'
-      ];
-      await terminal.writeP(data.join(''));
-      // brute force test with insane values
-      assert.doesNotThrow(() => {
-        for (let overscan = 0; overscan < 20; ++overscan) {
-          for (let start = -10; start < 20; ++start) {
-            for (let end = -10; end < 20; ++end) {
-              const it = terminal.buffer.iterator(false, start, end, overscan, overscan);
-              while (it.hasNext()) {
-                it.next();
-              }
-            }
-          }
-        }
-      });
-    });
-  });
-
   describe('Windows Mode', () => {
     it('should mark lines as wrapped when the line ends in a non-null character after a LF', async () => {
       const data = [
@@ -1448,7 +1111,7 @@ describe('Terminal', () => {
       term = new TestTerminal({});
       markers = [];
       disposeStack = [];
-      term.optionsService.setOption('scrollback', 1);
+      term.optionsService.options.scrollback = 1;
       term.resize(10, 5);
       markers.push(term.buffers.active.addMarker(term.buffers.active.y));
       await term.writeP('\x1b[r0\r\n');
@@ -1480,7 +1143,6 @@ describe('Terminal', () => {
       assert.deepEqual(disposeStack, [markers[0], markers[1]]);
       // trimmed marker objs should be disposed
       assert.deepEqual(disposeStack.map(el => el.isDisposed), [true, true]);
-      assert.deepEqual(disposeStack.map(el => (el as any)._isDisposed), [true, true]);
       // trimmed markers should contain line -1
       assert.deepEqual(disposeStack.map(el => el.line), [-1, -1]);
     });
@@ -1518,26 +1180,3 @@ describe('Terminal', () => {
     });
   });
 });
-
-class TestLinkifier extends Linkifier {
-  constructor(bufferService: IBufferService, unicodeService: IUnicodeService) {
-    super(bufferService, new MockLogService(), unicodeService);
-    Linkifier._timeBeforeLatency = 0;
-  }
-
-  public get linkMatchers(): IRegisteredLinkMatcher[] { return this._linkMatchers; }
-  public linkifyRows(): void { super.linkifyRows(0, this._bufferService.buffer.lines.length - 1); }
-}
-
-class TestMouseZoneManager implements IMouseZoneManager {
-  public dispose(): void {
-  }
-  public clears: number = 0;
-  public zones: IMouseZone[] = [];
-  public add(zone: IMouseZone): void {
-    this.zones.push(zone);
-  }
-  public clearAll(): void {
-    this.clears++;
-  }
-}

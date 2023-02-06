@@ -45,7 +45,6 @@ pre {
 
 #container {
     display: flex;
-    height: 75vh;
 }
 #grid {
     flex: 1;
@@ -89,4 +88,21 @@ pre {
     border-top: none;
     max-height: 100vh;
     overflow-y: auto;
+}
+
+#texture-atlas-zoom:checked + label + #texture-atlas canvas {
+    /* Zoom atlas to the width of the container*/
+    width: 100% !important;
+    height: auto !important;
+}
+#texture-atlas {
+    width: 100%;
+}
+#texture-atlas canvas {
+    image-rendering: pixelated;
+    border: 1px solid #ccc;
+}
+
+.vt-button * {
+  margin-right: 1em;
 }

@@ -252,7 +252,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       let data = '';
       for (let y = 0; y < 240 / 16; y++) {
         for (let x = 0; x < 16; x++) {
-          data += `\\x1b[38;5;${16 + y * 16 + x}m█\x1b[0m`;
+          data += `\\x1b[38;5;${16 + y * 16 + x}m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -312,7 +312,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       let data = '';
       for (let y = 0; y < 240 / 16; y++) {
         for (let x = 0; x < 16; x++) {
-          data += `\\x1b[7;48;5;${16 + y * 16 + x}m█\x1b[0m`;
+          data += `\\x1b[7;48;5;${16 + y * 16 + x}m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -348,7 +348,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       let data = '';
       for (let y = 0; y < 240 / 16; y++) {
         for (let x = 0; x < 16; x++) {
-          data += `\\x1b[8;48;5;${16 + y * 16 + x}m█\x1b[0m`;
+          data += `\\x1b[8;48;5;${16 + y * 16 + x}m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -369,7 +369,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 16; x++) {
           const i = y * 16 + x;
-          data += `\\x1b[38;2;${i};0;0m█\x1b[0m`;
+          data += `\\x1b[38;2;${i};0;0m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -405,7 +405,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 16; x++) {
           const i = y * 16 + x;
-          data += `\\x1b[38;2;0;${i};0m█\x1b[0m`;
+          data += `\\x1b[38;2;0;${i};0m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -441,7 +441,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 16; x++) {
           const i = y * 16 + x;
-          data += `\\x1b[38;2;0;0;${i}m█\x1b[0m`;
+          data += `\\x1b[38;2;0;0;${i}m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -477,7 +477,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 16; x++) {
           const i = y * 16 + x;
-          data += `\\x1b[38;2;${i};${i};${i}m█\x1b[0m`;
+          data += `\\x1b[38;2;${i};${i};${i}m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -567,7 +567,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 16; x++) {
           const i = y * 16 + x;
-          data += `\\x1b[7;48;2;0;${i};0m█\x1b[0m`;
+          data += `\\x1b[7;48;2;0;${i};0m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -603,7 +603,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 16; x++) {
           const i = y * 16 + x;
-          data += `\\x1b[7;48;2;0;0;${i}m█\x1b[0m`;
+          data += `\\x1b[7;48;2;0;0;${i}m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -639,7 +639,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 16; x++) {
           const i = y * 16 + x;
-          data += `\\x1b[7;48;2;${i};${i};${i}m█\x1b[0m`;
+          data += `\\x1b[7;48;2;${i};${i};${i}m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -674,7 +674,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       for (let y = 0; y < 16; y++) {
         for (let x = 0; x < 16; x++) {
           const i = y * 16 + x;
-          data += `\\x1b[8;48;2;${i};${i};${i}m█\x1b[0m`;
+          data += `\\x1b[8;48;2;${i};${i};${i}m█\\x1b[0m`;
         }
         data += '\\r\\n';
       }
@@ -718,9 +718,10 @@ describe('WebGL Renderer Integration Tests', async () => {
         window.term.options.theme = ${JSON.stringify(theme)};
         window.term.options.minimumContrastRatio = 1;
       `);
+      // Block characters ignore block elements so a different char is used here
       await writeSync(page,
-        `\\x1b[30m█\\x1b[31m█\\x1b[32m█\\x1b[33m█\\x1b[34m█\\x1b[35m█\\x1b[36m█\\x1b[37m█\\r\\n` +
-        `\\x1b[90m█\\x1b[91m█\\x1b[92m█\\x1b[93m█\\x1b[94m█\\x1b[95m█\\x1b[96m█\\x1b[97m█`
+        `\\x1b[30m■\\x1b[31m■\\x1b[32m■\\x1b[33m■\\x1b[34m■\\x1b[35m■\\x1b[36m■\\x1b[37m■\\r\\n` +
+        `\\x1b[90m■\\x1b[91m■\\x1b[92m■\\x1b[93m■\\x1b[94m■\\x1b[95m■\\x1b[96m■\\x1b[97m■`
       );
       // Validate before minimumContrastRatio is applied
       await pollFor(page, () => getCellColor(1, 1), [0x2e, 0x34, 0x36, 255]);
@@ -786,9 +787,10 @@ describe('WebGL Renderer Integration Tests', async () => {
         window.term.options.theme = ${JSON.stringify(theme)};
         window.term.options.minimumContrastRatio = 1;
       `);
+      // Block characters ignore block elements so a different char is used here
       await writeSync(page,
-        `\\x1b[30m█\\x1b[31m█\\x1b[32m█\\x1b[33m█\\x1b[34m█\\x1b[35m█\\x1b[36m█\\x1b[37m█\\r\\n` +
-        `\\x1b[90m█\\x1b[91m█\\x1b[92m█\\x1b[93m█\\x1b[94m█\\x1b[95m█\\x1b[96m█\\x1b[97m█`
+        `\\x1b[30m■\\x1b[31m■\\x1b[32m■\\x1b[33m■\\x1b[34m■\\x1b[35m■\\x1b[36m■\\x1b[37m■\\r\\n` +
+        `\\x1b[90m■\\x1b[91m■\\x1b[92m■\\x1b[93m■\\x1b[94m■\\x1b[95m■\\x1b[96m■\\x1b[97m■`
       );
       // Validate before minimumContrastRatio is applied
       await pollFor(page, () => getCellColor(1, 1), [0x2e, 0x34, 0x36, 255]);
@@ -830,7 +832,7 @@ describe('WebGL Renderer Integration Tests', async () => {
     });
   });
 
-  describe('selection', async () => {
+  describe('selectionBackground', async () => {
     if (areTestsEnabled) {
       before(async () => setupBrowser());
       after(async () => browser.close());
@@ -841,7 +843,7 @@ describe('WebGL Renderer Integration Tests', async () => {
       const theme: ITheme = {
         foreground: '#FF0000',
         background: '#00FF00',
-        selection: '#0000FF'
+        selectionBackground: '#0000FF'
       };
       await page.evaluate(`window.term.options.theme = ${JSON.stringify(theme)};`);
       await writeSync(page, ` █\\x1b[7m█\\x1b[0m`);
@@ -858,7 +860,7 @@ describe('WebGL Renderer Integration Tests', async () => {
 
   describe('allowTransparency', async () => {
     if (areTestsEnabled) {
-      before(async () => setupBrowser({ rendererType: 'dom', allowTransparency: true }));
+      before(async () => setupBrowser({ allowTransparency: true }));
       after(async () => browser.close());
       beforeEach(async () => page.evaluate(`window.term.reset()`));
     }
@@ -868,16 +870,35 @@ describe('WebGL Renderer Integration Tests', async () => {
         background: '#ff000080'
       };
       await page.evaluate(`window.term.options.theme = ${JSON.stringify(theme)};`);
-      const data = `\\x1b[7m█\x1b[0m`;
+      const data = `\\x1b[7m█\\x1b[0m`;
       await writeSync(page, data);
       // Inverse background should be opaque
       await pollFor(page, () => getCellColor(1, 1), [255, 0, 0, 255]);
     });
   });
 
+  describe('selectionForeground', () => {
+    if (areTestsEnabled) {
+      before(async () => setupBrowser());
+      after(async () => browser.close());
+      beforeEach(async () => page.evaluate(`window.term.reset()`));
+    }
+
+    itWebgl('transparent background inverse', async () => {
+      const theme: ITheme = {
+        selectionForeground: '#ff0000'
+      };
+      await page.evaluate(`window.term.options.theme = ${JSON.stringify(theme)};`);
+      const data = `\\x1b[7m█\\x1b[0m`;
+      await writeSync(page, data);
+      await page.evaluate(`window.term.selectAll()`);
+      await pollFor(page, () => getCellColor(1, 1), [255, 0, 0, 255]);
+    });
+  });
+
   describe('decoration color overrides', async () => {
     if (areTestsEnabled) {
-      before(async () => setupBrowser({ rendererType: 'dom' }));
+      before(async () => setupBrowser());
       after(async () => browser.close());
       beforeEach(async () => page.evaluate(`window.term.reset()`));
     }
@@ -971,8 +992,8 @@ async function getCellColor(col: number, row: number): Promise<number[]> {
     window.result = new Uint8Array(4);
     window.d = window.term._core._renderService.dimensions;
     window.gl.readPixels(
-      Math.floor((${col - 0.5}) * window.d.scaledCellWidth),
-      Math.floor(window.gl.drawingBufferHeight - 1 - (${row - 0.5}) * window.d.scaledCellHeight),
+      Math.floor((${col - 0.5}) * window.d.device.cell.width),
+      Math.floor(window.gl.drawingBufferHeight - 1 - (${row - 0.5}) * window.d.device.cell.height),
       1, 1, window.gl.RGBA, window.gl.UNSIGNED_BYTE, window.result
     );
   `);
@@ -982,18 +1003,18 @@ async function getCellColor(col: number, row: number): Promise<number[]> {
 async function getCellPixels(col: number, row: number): Promise<number[]> {
   await page.evaluate(`
     window.gl = window.term._core._renderService._renderer._gl;
-    window.result = new Uint8Array(window.d.scaledCellWidth * window.d.scaledCellHeight * 4);
+    window.result = new Uint8Array(window.d.device.cell.width * window.d.device.cell.height * 4);
     window.d = window.term._core._renderService.dimensions;
     window.gl.readPixels(
-      Math.floor(${col - 1} * window.d.scaledCellWidth),
-      Math.floor(window.gl.drawingBufferHeight - ${row} * window.d.scaledCellHeight),
-      window.d.scaledCellWidth, window.d.scaledCellHeight, window.gl.RGBA, window.gl.UNSIGNED_BYTE, window.result
+      Math.floor(${col - 1} * window.d.device.cell.width),
+      Math.floor(window.gl.drawingBufferHeight - ${row} * window.d.device.cell.height),
+      window.d.device.cell.width, window.d.device.cell.height, window.gl.RGBA, window.gl.UNSIGNED_BYTE, window.result
     );
   `);
   return await page.evaluate(`Array.from(window.result)`);
 }
 
-async function setupBrowser(options: ITerminalOptions = { rendererType: 'dom' }): Promise<void> {
+async function setupBrowser(options: ITerminalOptions = {}): Promise<void> {
   browser = await launchBrowser();
   page = await (await browser.newContext()).newPage();
   await page.setViewportSize({ width, height });

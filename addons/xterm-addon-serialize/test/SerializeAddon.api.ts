@@ -42,7 +42,7 @@ describe('SerializeAddon', () => {
     page = await (await browser.newContext()).newPage();
     await page.setViewportSize({ width, height });
     await page.goto(APP);
-    await openTerminal(page, { rows: 10, cols: 10, rendererType: 'dom' });
+    await openTerminal(page, { rows: 10, cols: 10 });
     await page.evaluate(`
       window.serializeAddon = new SerializeAddon();
       window.term.loadAddon(window.serializeAddon);
@@ -83,7 +83,7 @@ describe('SerializeAddon', () => {
     const buffer3 = await page.evaluate(`inspectBuffer(term.buffer.normal);`);
 
     await page.evaluate(`term.reset();`);
-    await writeRawSync(page, '1234567890n12345');
+    await writeRawSync(page, '123456789012345');
     const buffer4 = await page.evaluate(`inspectBuffer(term.buffer.normal);`);
 
     assert.throw(() => {

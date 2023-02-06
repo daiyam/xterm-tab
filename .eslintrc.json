@@ -7,6 +7,7 @@
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "project": [
+      "demo/tsconfig.json",
       "src/browser/tsconfig.json",
       "src/common/tsconfig.json",
       "src/headless/tsconfig.json",
@@ -14,6 +15,7 @@
       "test/benchmark/tsconfig.json",
       "addons/xterm-addon-attach/src/tsconfig.json",
       "addons/xterm-addon-attach/test/tsconfig.json",
+      "addons/xterm-addon-canvas/src/tsconfig.json",
       "addons/xterm-addon-fit/src/tsconfig.json",
       "addons/xterm-addon-fit/test/tsconfig.json",
       "addons/xterm-addon-ligatures/src/tsconfig.json",
@@ -37,7 +39,8 @@
     "**/*.js"
   ],
   "plugins": [
-    "@typescript-eslint"
+    "@typescript-eslint",
+    "jsdoc"
   ],
   "rules": {
     "no-extra-semi": "error",
@@ -94,7 +97,19 @@
       { "selector": "enumMember", "format": ["UPPER_CASE"] },
       // memberLike - Allow enum-like objects to use UPPER_CASE
       { "selector": "property", "modifiers": ["public"], "format": ["camelCase", "UPPER_CASE"] },
-      { "selector": "method", "modifiers": ["public"], "format": ["camelCase", "UPPER_CASE"] },
+      // restrict on* naming for events only
+      { "selector": "method", "modifiers": ["public"], "format": ["camelCase", "UPPER_CASE"], "custom": {
+        "regex": "^on[A-Z].+",
+        "match": false
+      } },
+      { "selector": "method", "modifiers": ["private"], "format": ["camelCase"], "leadingUnderscore": "require", "custom": {
+        "regex": "^on[A-Z].+",
+        "match": false
+      } },
+      { "selector": "method", "modifiers": ["protected"], "format": ["camelCase"], "leadingUnderscore": "require", "custom": {
+        "regex": "^on[A-Z].+",
+        "match": false
+      } },
       // typeLike
       { "selector": "typeLike", "format": ["PascalCase"] },
       { "selector": "interface", "format": ["PascalCase"], "prefix": ["I"] }
@@ -127,6 +142,9 @@
       "warn",
       "always"
     ],
+    "jsdoc/check-alignment": 1,
+    "jsdoc/check-param-names": 1,
+    "jsdoc/no-multi-asterisks": 1,
     "keyword-spacing": "warn",
     "new-parens": "warn",
     "no-duplicate-imports": "warn",
@@ -144,6 +162,29 @@
         "patterns": [
           ".*\\/out\\/.*"
         ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "CallExpression[callee.name='requestAnimationFrame']",
+        "message": "The global requestAnimationFrame() should be avoided, call it on the parent window from ICoreBrowserService."
+      },
+      {
+        "selector": "CallExpression[callee.name='cancelAnimationFrame']",
+        "message": "The global cancelAnimationFrame() should be avoided, call it on the parent window from ICoreBrowserService."
+      },
+      {
+        "selector": "CallExpression > MemberExpression[object.name='window'][property.name='requestAnimationFrame']",
+        "message": "window.requestAnimationFrame() should be avoided, call it on the parent window from ICoreBrowserService."
+      },
+      {
+        "selector": "CallExpression > MemberExpression[object.name='window'][property.name='cancelAnimationFrame']",
+        "message": "window.cancelAnimationFrame() should be avoided, call it on the parent window from ICoreBrowserService."
+      },
+      {
+        "selector": "MemberExpression[object.name='window'][property.name='devicePixelRatio']",
+        "message": "window.devicePixelRatio should be avoided, get it from ICoreBrowserService."
       }
     ],
     "no-trailing-spaces": "warn",

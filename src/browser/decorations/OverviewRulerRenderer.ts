@@ -5,9 +5,9 @@
 
 import { ColorZoneStore, IColorZone, IColorZoneStore } from 'browser/decorations/ColorZoneStore';
 import { addDisposableDomListener } from 'browser/Lifecycle';
-import { IRenderService } from 'browser/services/Services';
-import { Disposable } from 'common/Lifecycle';
-import { IBufferService, IDecorationService, IInternalDecoration, IOptionsService } from 'common/services/Services';
+import { ICoreBrowserService, IRenderService } from 'browser/services/Services';
+import { Disposable, toDisposable } from 'common/Lifecycle';
+import { IBufferService, IDecorationService, IOptionsService } from 'common/services/Services';
 
 // Helper objects to avoid excessive calculation and garbage collection during rendering. These are
 // static values for each render and can be accessed using the decoration position as the key.
@@ -51,7 +51,8 @@ export class OverviewRulerRenderer extends Disposable {
     @IBufferService private readonly _bufferService: IBufferService,
     @IDecorationService private readonly _decorationService: IDecorationService,
     @IRenderService private readonly _renderService: IRenderService,
-    @IOptionsService private readonly _optionsService: IOptionsService
+    @IOptionsService private readonly _optionsService: IOptionsService,
+    @ICoreBrowserService private readonly _coreBrowseService: ICoreBrowserService
   ) {
     super();
     this._canvas = document.createElement('canvas');
@@ -67,6 +68,9 @@ export class OverviewRulerRenderer extends Disposable {
     this._registerDecorationListeners();
     this._registerBufferChangeListeners();
     this._registerDimensionChangeListeners();
+    this.register(toDisposable(() => {
+      this._canvas?.remove();
+    }));
   }
 
   /**
@@ -82,12 +86,13 @@ export class OverviewRulerRenderer extends Disposable {
    * and hide the canvas if the alt buffer is active
    */
   private _registerBufferChangeListeners(): void {
-    this.register(this._renderService.onRenderedBufferChange(() => this._queueRefresh()));
+    this.register(this._renderService.onRenderedViewportChange(() => this._queueRefresh()));
     this.register(this._bufferService.buffers.onBufferActivate(() => {
       this._canvas!.style.display = this._bufferService.buffer === this._bufferService.buffers.alt ? 'none' : 'block';
     }));
     this.register(this._bufferService.onScroll(() => {
       if (this._lastKnownBufferLength !== this._bufferService.buffers.normal.lines.length) {
+        this._refreshDrawHeightConstants();
         this._refreshColorZonePadding();
       }
     }));
@@ -105,22 +110,11 @@ export class OverviewRulerRenderer extends Disposable {
       }
     }));
     // overview ruler width changed
-    this.register(this._optionsService.onOptionChange(o => {
-      if (o === 'overviewRulerWidth') {
-        this._queueRefresh(true);
-      }
-    }));
+    this.register(this._optionsService.onSpecificOptionChange('overviewRulerWidth', () => this._queueRefresh(true)));
     // device pixel ratio changed
-    this.register(addDisposableDomListener(window, 'resize', () => {
-      this._queueRefresh(true);
-    }));
+    this.register(addDisposableDomListener(this._coreBrowseService.window, 'resize', () => this._queueRefresh(true)));
     // set the canvas dimensions
     this._queueRefresh(true);
-  }
-
-  public override dispose(): void {
-    this._canvas?.remove();
-    super.dispose();
   }
 
   private _refreshDrawConstants(): void {
@@ -132,15 +126,23 @@ export class OverviewRulerRenderer extends Disposable {
     drawWidth.center = innerWidth;
     drawWidth.right = outerWidth;
     // height
-    drawHeight.full = Math.round(2 * window.devicePixelRatio);
-    drawHeight.left = Math.round(6 * window.devicePixelRatio);
-    drawHeight.center = Math.round(6 * window.devicePixelRatio);
-    drawHeight.right = Math.round(6 * window.devicePixelRatio);
+    this._refreshDrawHeightConstants();
     // x
     drawX.full = 0;
     drawX.left = 0;
     drawX.center = drawWidth.left;
     drawX.right = drawWidth.left + drawWidth.center;
+  }
+
+  private _refreshDrawHeightConstants(): void {
+    drawHeight.full = Math.round(2 * this._coreBrowseService.dpr);
+    // Calculate actual pixels per line
+    const pixelsPerLine = this._canvas.height / this._bufferService.buffer.lines.length;
+    // Clamp actual pixels within a range
+    const nonFullHeight = Math.round(Math.max(Math.min(pixelsPerLine, 12), 6) * this._coreBrowseService.dpr);
+    drawHeight.left = nonFullHeight;
+    drawHeight.center = nonFullHeight;
+    drawHeight.right = nonFullHeight;
   }
 
   private _refreshColorZonePadding(): void {
@@ -155,9 +157,9 @@ export class OverviewRulerRenderer extends Disposable {
 
   private _refreshCanvasDimensions(): void {
     this._canvas.style.width = `${this._width}px`;
-    this._canvas.width = Math.round(this._width * window.devicePixelRatio);
+    this._canvas.width = Math.round(this._width * this._coreBrowseService.dpr);
     this._canvas.style.height = `${this._screenElement.clientHeight}px`;
-    this._canvas.height = Math.round(this._screenElement.clientHeight * window.devicePixelRatio);
+    this._canvas.height = Math.round(this._screenElement.clientHeight * this._coreBrowseService.dpr);
     this._refreshDrawConstants();
     this._refreshColorZonePadding();
   }
@@ -188,8 +190,6 @@ export class OverviewRulerRenderer extends Disposable {
   }
 
   private _renderColorZone(zone: IColorZone): void {
-    // TODO: Is _decorationElements needed?
-
     this._ctx.fillStyle = zone.color;
     this._ctx.fillRect(
       /* x */ drawX[zone.position || 'full'],
@@ -211,7 +211,7 @@ export class OverviewRulerRenderer extends Disposable {
     if (this._animationFrame !== undefined) {
       return;
     }
-    this._animationFrame = window.requestAnimationFrame(() => {
+    this._animationFrame = this._coreBrowseService.window.requestAnimationFrame(() => {
       this._refreshDecorations();
       this._animationFrame = undefined;
     });
