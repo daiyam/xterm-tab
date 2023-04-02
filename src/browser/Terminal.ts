@@ -21,7 +21,7 @@
  *   http://linux.die.net/man/7/urxvt
  */
 
-import { ICompositionHelper, ITerminal, IBrowser, CustomKeyEventHandler, IViewport, ILinkifier2, CharacterJoinerHandler, IBufferRange } from 'browser/Types';
+import { ICompositionHelper, ITerminal, IBrowser, CustomKeyEventHandler, IViewport, ILinkifier2, CharacterJoinerHandler, IBufferRange, IBufferElementProvider } from 'browser/Types';
 import { IRenderer } from 'browser/renderer/shared/Types';
 import { CompositionHelper } from 'browser/input/CompositionHelper';
 import { Viewport } from 'browser/Viewport';
@@ -33,7 +33,6 @@ import * as Browser from 'common/Platform';
 import { addDisposableDomListener } from 'browser/Lifecycle';
 import * as Strings from 'browser/LocalizableStrings';
 import { AccessibilityManager } from './AccessibilityManager';
-import { AccessibleBuffer } from './AccessibleBuffer';
 import { ITheme, IMarker, IDisposable, ILinkProvider, IDecorationOptions, IDecoration } from '@daiyam/xterm-tab';
 import { DomRenderer } from 'browser/renderer/dom/DomRenderer';
 import { KeyboardResultType, CoreMouseEventType, CoreMouseButton, CoreMouseAction, ITerminalOptions, ScrollSource, IColorEvent, ColorIndex, ColorRequestType } from 'common/Types';
@@ -72,7 +71,6 @@ export class Terminal extends CoreTerminal implements ITerminal {
   private _viewportElement: HTMLElement | undefined;
   private _helperContainer: HTMLElement | undefined;
   private _compositionView: HTMLElement | undefined;
-  private _accessibleBuffer: AccessibleBuffer | undefined;
 
   private _overviewRulerRenderer: OverviewRulerRenderer | undefined;
 
@@ -578,8 +576,6 @@ export class Terminal extends CoreTerminal implements ITerminal {
     // Listen for mouse events and translate
     // them into terminal mouse protocols.
     this.bindMouse();
-
-    this._accessibleBuffer = this._instantiationService.createInstance(AccessibleBuffer, this);
   }
 
   private _createRenderer(): IRenderer {
@@ -771,9 +767,6 @@ export class Terminal extends CoreTerminal implements ITerminal {
      */
     this.register(addDisposableDomListener(el, 'mousedown', (ev: MouseEvent) => {
       ev.preventDefault();
-      if (this._accessibleBuffer?.isAccessibilityBufferActive) {
-        return;
-      }
       this.focus();
 
       // Don't send the mouse button to the pty if mouse events are disabled or
@@ -924,7 +917,7 @@ export class Terminal extends CoreTerminal implements ITerminal {
     return this.buffer.markers;
   }
 
-  public addMarker(cursorYOffset: number): IMarker | undefined {
+  public addMarker(cursorYOffset: number): IMarker {
     return this.buffer.addMarker(this.buffer.ybase + this.buffer.y + cursorYOffset);
   }
 

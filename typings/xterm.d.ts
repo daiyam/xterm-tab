@@ -498,11 +498,6 @@ declare module '@daiyam/xterm-tab' {
      * being printed to the terminal when `screenReaderMode` is enabled.
      */
     tooMuchOutput: string;
-
-    /**
-     * The aria label for the accessibility buffer
-     */
-    accessibilityBuffer: string;
   }
 
   /**
@@ -959,12 +954,11 @@ declare module '@daiyam/xterm-tab' {
     deregisterCharacterJoiner(joinerId: number): void;
 
     /**
-     * Adds a marker to the normal buffer and returns it. If the alt buffer is
-     * active, undefined is returned.
+     * Adds a marker to the normal buffer and returns it.
      * @param cursorYOffset The y position offset of the marker from the cursor.
      * @returns The new marker or undefined.
      */
-    registerMarker(cursorYOffset?: number): IMarker | undefined;
+    registerMarker(cursorYOffset?: number): IMarker;
 
     /**
      * (EXPERIMENTAL) Adds a decoration to the terminal using
@@ -1358,6 +1352,13 @@ declare module '@daiyam/xterm-tab' {
      * cell objects when dealing with tons of cells.
      */
     getNullCell(): IBufferCell;
+  }
+
+  export interface IBufferElementProvider {
+    /**
+     * Provides a document fragment or HTMLElement containing the buffer elements.
+     */
+    provideBufferElements(): DocumentFragment | HTMLElement;
   }
 
   /**

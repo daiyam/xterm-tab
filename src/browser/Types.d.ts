@@ -59,7 +59,7 @@ export interface IPublicTerminal extends IDisposable {
   registerLinkProvider(linkProvider: ILinkProvider): IDisposable;
   registerCharacterJoiner(handler: (text: string) => [number, number][]): number;
   deregisterCharacterJoiner(joinerId: number): void;
-  addMarker(cursorYOffset: number): IMarker | undefined;
+  addMarker(cursorYOffset: number): IMarker;
   registerDecoration(decorationOptions: IDecorationOptions): IDecoration | undefined;
   hasSelection(): boolean;
   getSelection(): string;
@@ -219,4 +219,8 @@ export interface IRenderDebouncer extends IDisposable {
 
 export interface IRenderDebouncerWithCallback extends IRenderDebouncer {
   addRefreshCallback(callback: FrameRequestCallback): number;
+}
+
+export interface IBufferElementProvider {
+  provideBufferElements(): DocumentFragment | HTMLElement;
 }
