@@ -22,6 +22,7 @@ Why not in Xterm.js
 -------------------
 
 My PR: https://github.com/xtermjs/xterm.js/pull/3434
+
 An issue about tab characters: https://github.com/xtermjs/xterm.js/issues/734
 
 License
