@@ -41,7 +41,7 @@
     "test:dev": "cross-env NODE_PATH='./out' mocha",
     "build": "tsc -b ./tsconfig.all.json",
     "prepare": "npm run setup",
-    "release": "release-it --no-increment",
+    "release": "npx release-it --no-increment",
     "setup": "npm run build",
     "presetup": "node ./bin/install-addons.js",
     "prepublishOnly": "npm run package",
