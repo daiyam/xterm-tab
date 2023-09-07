@@ -11,7 +11,7 @@ declare module '@daiyam/xterm-tab-headless' {
   /**
    * A string representing log level.
    */
-  export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'off';
+  export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'off';
 
   /**
    * An object containing options for the terminal.
@@ -19,7 +19,8 @@ declare module '@daiyam/xterm-tab-headless' {
   export interface ITerminalOptions {
     /**
      * Whether to allow the use of proposed API. When false, any usage of APIs
-     * marked as experimental/proposed will throw an error. The default is false.
+     * marked as experimental/proposed will throw an error. The default is
+     * false.
      */
     allowProposedApi?: boolean;
 
@@ -63,13 +64,13 @@ declare module '@daiyam/xterm-tab-headless' {
     cursorWidth?: number;
 
     /**
-     * Whether to draw custom glyphs for block element and box drawing characters instead of using
-     * the font. This should typically result in better rendering with continuous lines, even when
-     * line height and letter spacing is used. Note that this doesn't work with the DOM renderer
-     * which renders all characters using the font. The default is true.
+     * Whether to draw custom glyphs for block element and box drawing
+     * characters instead of using the font. This should typically result in
+     * better rendering with continuous lines, even when line height and letter
+     * spacing is used. Note that this doesn't work with the DOM renderer which
+     * renders all characters using the font. The default is true.
      */
     customGlyphs?: boolean;
-
     /**
      * Whether input should be disabled.
      */
@@ -99,13 +100,19 @@ declare module '@daiyam/xterm-tab-headless' {
      * What log level to use, this will log for all levels below and including
      * what is set:
      *
-     * 1. debug
-     * 2. info (default)
-     * 3. warn
-     * 4. error
-     * 5. off
+     * 1. trace
+     * 2. debug
+     * 3. info (default)
+     * 4. warn
+     * 5. error
+     * 6. off
      */
     logLevel?: LogLevel;
+
+    /**
+     * A logger to use instead of `console`.
+     */
+    logger?: ILogger | null;
 
     /**
      * Whether to treat option as the meta key.
@@ -212,9 +219,9 @@ declare module '@daiyam/xterm-tab-headless' {
     windowsPty?: IWindowsPty;
 
     /**
-     * A string containing all characters that are considered word separated by the
-     * double click to select work logic.
-    */
+     * A string containing all characters that are considered word separated by
+     * the double click to select work logic.
+     */
     wordSeparator?: string;
 
     /**
@@ -305,6 +312,37 @@ declare module '@daiyam/xterm-tab-headless' {
   }
 
   /**
+   * A replacement logger for `console`.
+   */
+  export interface ILogger {
+    /**
+     * Log a trace message, this will only be called if
+     * {@link ITerminalOptions.logLevel} is set to trace.
+     */
+    trace(message: string, ...args: any[]): void;
+    /**
+     * Log a debug message, this will only be called if
+     * {@link ITerminalOptions.logLevel} is set to debug or below.
+     */
+    debug(message: string, ...args: any[]): void;
+    /**
+     * Log a debug message, this will only be called if
+     * {@link ITerminalOptions.logLevel} is set to info or below.
+     */
+    info(message: string, ...args: any[]): void;
+    /**
+     * Log a debug message, this will only be called if
+     * {@link ITerminalOptions.logLevel} is set to warn or below.
+     */
+    warn(message: string, ...args: any[]): void;
+    /**
+     * Log a debug message, this will only be called if
+     * {@link ITerminalOptions.logLevel} is set to error or below.
+     */
+    error(message: string | Error, ...args: any[]): void;
+  }
+
+  /**
    * An object that can be disposed via a dispose function.
    */
   export interface IDisposable {
@@ -324,29 +362,32 @@ declare module '@daiyam/xterm-tab-headless' {
    * is trimmed and lines are added or removed. This is a single line that may
    * be part of a larger wrapped line.
    */
-  export interface IMarker extends IDisposable {
+  export interface IMarker extends IDisposableWithEvent {
     /**
      * A unique identifier for this marker.
      */
     readonly id: number;
 
     /**
-     * Whether this marker is disposed.
-     */
-    readonly isDisposed: boolean;
-
-    /**
      * The actual line index in the buffer at this point in time. This is set to
      * -1 if the marker has been disposed.
      */
     readonly line: number;
+  }
 
+  /**
+   * Represents a disposable that tracks is disposed state.
+   */
+  export interface IDisposableWithEvent extends IDisposable {
     /**
-     * Event listener to get notified when the marker gets disposed. Automatic disposal
-     * might happen for a marker, that got invalidated by scrolling out or removal of
-     * a line from the buffer.
+     * Event listener to get notified when this gets disposed.
      */
     onDispose: IEvent<void>;
+
+    /**
+     * Whether this is disposed.
+     */
+    readonly isDisposed: boolean;
   }
 
   /**
@@ -366,7 +407,8 @@ declare module '@daiyam/xterm-tab-headless' {
   }
 
   /**
-   * Enable various window manipulation and report features (CSI Ps ; Ps ; Ps t).
+   * Enable various window manipulation and report features
+   * (`CSI Ps ; Ps ; Ps t`).
    *
    * Most settings have no default implementation, as they heavily rely on
    * the embedding environment.
@@ -386,10 +428,10 @@ declare module '@daiyam/xterm-tab-headless' {
    *
    * Note on security:
    * Most features are meant to deal with some information of the host machine
-   * where the terminal runs on. This is seen as a security risk possibly leaking
-   * sensitive data of the host to the program in the terminal. Therefore all options
-   * (even those without a default implementation) are guarded by the boolean flag
-   * and disabled by default.
+   * where the terminal runs on. This is seen as a security risk possibly
+   * leaking sensitive data of the host to the program in the terminal.
+   * Therefore all options (even those without a default implementation) are
+   * guarded by the boolean flag and disabled by default.
    */
   export interface IWindowOptions {
     /**
@@ -570,23 +612,36 @@ declare module '@daiyam/xterm-tab-headless' {
     readonly modes: IModes;
 
     /**
-     * Gets or sets the terminal options. This supports setting multiple options.
+     * Gets or sets the terminal options. This supports setting multiple
+     * options.
      *
      * @example Get a single option
-     * ```typescript
+     * ```ts
      * console.log(terminal.options.fontSize);
      * ```
      *
-     * @example Set a single option
-     * ```typescript
+     * @example Set a single option:
+     * ```ts
      * terminal.options.fontSize = 12;
+     * ```
+     * Note that for options that are object, a new object must be used in order
+     * to take effect as a reference comparison will be done:
+     * ```ts
+     * const newValue = terminal.options.theme;
+     * newValue.background = '#000000';
+     *
+     * // This won't work
+     * terminal.options.theme = newValue;
+     *
+     * // This will work
+     * terminal.options.theme = { ...newValue };
      * ```
      *
      * @example Set multiple options
-     * ```typescript
+     * ```ts
      * terminal.options = {
      *   fontSize: 12,
-     *   fontFamily: 'Courier New',
+     *   fontFamily: 'Courier New'
      * };
      * ```
      */
@@ -1251,6 +1306,6 @@ declare module '@daiyam/xterm-tab-headless' {
     /**
      * Auto-Wrap Mode (DECAWM): `CSI ? 7 h`
      */
-    readonly wraparoundMode: boolean
+    readonly wraparoundMode: boolean;
   }
 }
