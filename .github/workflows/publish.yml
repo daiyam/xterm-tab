@@ -1,5 +1,6 @@
 name: Publish Package
-"on":
+on:
+  workflow_dispatch:
   push:
     tags:
       - "*"
