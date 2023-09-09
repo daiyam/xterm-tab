@@ -17,7 +17,9 @@ fi
 
 cd headless
 if [[ -z $( should_publish ) ]]; then
+  cd ..
   yarn package-headless
+  cd headless
   npm publish --access=public
 fi
 
