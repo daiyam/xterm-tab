@@ -14,9 +14,8 @@ should_publish() {
 
 npm config set loglevel=silent
 
-yarn package-headless
-
 if [[ -z $( should_publish ) ]]; then
+  yarn package-headless
   npm publish --access=public
 fi
 
