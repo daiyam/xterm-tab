@@ -7,7 +7,7 @@ should_publish() {
   NAME="$(node -p -e "require('./package.json').name")"
 
   echo "$NAME - $VERSION"
-  echo $( view $NAME versions | grep "$VERSION" )
+  echo $( npm view $NAME versions | grep "$VERSION" )
 
   npm view $NAME versions | grep "$VERSION"
 }
