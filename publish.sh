@@ -26,10 +26,10 @@ if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../xterm-addon-image
-if [[ -z $( should_publish ) ]]; then
-  npm publish --access=public
-fi
+# cd ../xterm-addon-image
+# if [[ -z $( should_publish ) ]]; then
+#   npm publish --access=public
+# fi
 
 cd ../xterm-addon-search
 if [[ -z $( should_publish ) ]]; then
