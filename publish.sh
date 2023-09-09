@@ -13,10 +13,14 @@ npm config set loglevel=silent
 
 yarn package-headless
 
-npm publish --access=public
+if [[ -z $( should_publish ) ]]; then
+  npm publish --access=public
+fi
 
 cd headless
-npm publish --access=public
+if [[ -z $( should_publish ) ]]; then
+  npm publish --access=public
+fi
 
 cd ../addons/xterm-addon-canvas
 if [[ -z $( should_publish ) ]]; then
