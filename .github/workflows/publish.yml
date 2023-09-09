@@ -16,6 +16,7 @@ jobs:
           cache: yarn
       - run: |
           pwd
+          ls -la
           yarn --frozen-lockfile
           yarn test
       - run: ./publish.sh
