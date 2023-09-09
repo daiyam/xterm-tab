@@ -15,9 +15,8 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: yarn
       - run: |
-          pwd
-          ls -la
-          yarn --frozen-lockfile
+          yarn
+          yarn setup
           yarn test
       - run: ./publish.sh
         env:
