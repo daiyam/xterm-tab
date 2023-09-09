@@ -23,7 +23,7 @@ if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../addons/xterm-addon-image
+cd ../xterm-addon-image
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
