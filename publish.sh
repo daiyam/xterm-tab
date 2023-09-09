@@ -1,13 +1,10 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 should_publish() {
   VERSION="$(node -p -e "require('./package.json').version")"
   NAME="$(node -p -e "require('./package.json').name")"
-
-  echo "$NAME - $VERSION"
-  echo $( npm view $NAME versions | grep "$VERSION" )
 
   npm view $NAME versions | grep "$VERSION"
 }
@@ -15,12 +12,12 @@ should_publish() {
 npm config set loglevel=silent
 
 if [[ -z $( should_publish ) ]]; then
-  yarn package-headless
   npm publish --access=public
 fi
 
 cd headless
 if [[ -z $( should_publish ) ]]; then
+  yarn package-headless
   npm publish --access=public
 fi
 
