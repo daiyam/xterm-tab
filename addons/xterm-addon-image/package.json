@@ -1,6 +1,6 @@
 {
   "name": "@daiyam/xterm-tab-addon-image",
-  "version": "0.6.0-beta.14.0",
+  "version": "0.6.0-beta.14.1",
   "author": {
     "name": "The xterm.js authors",
     "url": "https://xtermjs.org/"
@@ -22,7 +22,7 @@
     "prepublishOnly": "npm run package"
   },
   "peerDependencies": {
-    "xterm": "^5.2.0"
+    "@daiyam/xterm-tab": "^5.2.0"
   },
   "devDependencies": {
     "sixel": "^0.16.0",

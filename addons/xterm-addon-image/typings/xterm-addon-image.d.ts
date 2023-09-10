@@ -5,7 +5,7 @@
 
 import { Terminal, ITerminalAddon } from '@daiyam/xterm-tab';
 
-declare module 'xterm-addon-image' {
+declare module '@daiyam/xterm-tab-addon-image' {
   export interface IImageAddonOptions {
     /**
      * Enable size reports in windowOptions:
