@@ -32,12 +32,6 @@ fs.copyFileSync(
   join(headlessRoot, 'typings/xterm-headless.d.ts')
 );
 
-console.log('> headless/logo-full.png');
-fs.copyFileSync(
-  join(repoRoot, 'images/logo-full.png'),
-  join(headlessRoot, 'logo-full.png')
-);
-
 function mkdirF(p) {
   if (!fs.existsSync(p)) {
     fs.mkdirSync(p);
