@@ -23,42 +23,42 @@ if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../addons/xterm-addon-clipboard
+cd ../addons/addon-clipboard
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../xterm-addon-image
+cd ../addon-image
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../xterm-addon-ligatures
+cd ../addon-ligatures
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../xterm-addon-progress
+cd ../addon-progress
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../xterm-addon-search
+cd ../addon-search
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../xterm-addon-serialize
+cd ../addon-serialize
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../xterm-addon-unicode11
+cd ../addon-unicode11
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../xterm-addon-webgl
+cd ../addon-webgl
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
