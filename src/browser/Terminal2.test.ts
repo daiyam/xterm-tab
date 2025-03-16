@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
 import * as pty from 'node-pty';
-import { Terminal } from 'browser/Terminal';
+import { CoreBrowserTerminal } from 'browser/CoreBrowserTerminal';
 import { IDisposable } from '@daiyam/xterm-tab';
 
 // all test files expect terminal in 80x25
@@ -40,7 +40,7 @@ describe('Escape Sequence Files', function(): void {
 
   let ptyTerm: any;
   let slaveEnd: any;
-  let term: Terminal;
+  let term: CoreBrowserTerminal;
   let customHandler: IDisposable | undefined;
 
   before(() => {
@@ -49,7 +49,7 @@ describe('Escape Sequence Files', function(): void {
     }
     ptyTerm = (pty as any).open({cols: COLS, rows: ROWS});
     slaveEnd = ptyTerm._slave;
-    term = new Terminal({cols: COLS, rows: ROWS});
+    term = new CoreBrowserTerminal({cols: COLS, rows: ROWS});
     ptyTerm._master.on('data', (data: string) => term.write(data));
   });
 
@@ -121,11 +121,11 @@ function formatError(input: string, output: string, expected: string): string {
 }
 
 // simple debug output of terminal cells
-function terminalToString(term: Terminal): string {
+function terminalToString(term: CoreBrowserTerminal): string {
   let result = '';
   let lineText = '';
   for (let line = term.buffer.ybase; line < term.buffer.ybase + term.rows; line++) {
-    lineText = term.buffer.lines.get(line)!.translateToString(true, undefined, undefined, true);
+    lineText = term.buffer.lines.get(line)!.translateToString(true, undefined, undefined, undefined, true);
     // rtrim empty cells as xterm does
     lineText = lineText.replace(/\s+$/, '');
     result += lineText;

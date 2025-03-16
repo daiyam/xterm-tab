@@ -3,8 +3,6 @@
  * @license MIT
  */
 import { test } from '@playwright/test';
-import { deepStrictEqual, ok, strictEqual } from 'assert';
-import type { IDisposable } from '@daiyam/xterm-tab';
 import { createTestContext, ITestContext, openTerminal, pollFor } from './TestUtils';
 
 let ctx: ITestContext;

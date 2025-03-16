@@ -47,11 +47,13 @@ declare module '@daiyam/xterm-tab' {
 
     /**
      * When enabled the cursor will be set to the beginning of the next line
-     * with every new line. This is equivalent to sending '\r\n' for each '\n'.
-     * Normally the termios settings of the underlying PTY deals with the
-     * translation of '\n' to '\r\n' and this setting should not be used. If you
+     * with every new line. This is equivalent to sending `\r\n` for each `\n`.
+     * Normally the settings of the underlying PTY (`termios`) deal with the
+     * translation of `\n` to `\r\n` and this setting should not be used. If you
      * deal with data from a non-PTY related source, this settings might be
      * useful.
+     *
+     * @see https://pubs.opengroup.org/onlinepubs/007904975/basedefs/termios.h.html
      */
     convertEol?: boolean;
 
@@ -90,17 +92,30 @@ declare module '@daiyam/xterm-tab' {
     disableStdin?: boolean;
 
     /**
+     * A {@link Document} to use instead of the one that xterm.js was attached
+     * to. The purpose of this is to improve support in multi-window
+     * applications where HTML elements may be references across multiple
+     * windows which can cause problems with `instanceof`.
+     *
+     * The type is `any` because using `Document` can cause TS to have
+     * performance/compiler problems.
+     */
+    documentOverride?: any | null;
+
+    /**
      * Whether to draw bold text in bright colors. The default is true.
      */
     drawBoldTextInBrightColors?: boolean;
 
     /**
      * The modifier key hold to multiply scroll speed.
+     * @deprecated This option is no longer available and will always use alt.
+     * Setting this will be ignored.
      */
     fastScrollModifier?: 'none' | 'alt' | 'ctrl' | 'shift';
 
     /**
-     * The scroll speed multiplier used for fast scrolling.
+     * The scroll speed multiplier used for fast scrolling when `Alt` is held.
      */
     fastScrollSensitivity?: number;
 
@@ -199,6 +214,30 @@ declare module '@daiyam/xterm-tab' {
     minimumContrastRatio?: number;
 
     /**
+     * Whether to reflow the line containing the cursor when the terminal is
+     * resized. Defaults to false, because shells usually handle this
+     * themselves.
+     */
+    reflowCursorLine?: boolean;
+
+    /**
+     * Whether to rescale glyphs horizontally that are a single cell wide but
+     * have glyphs that would overlap following cell(s). This typically happens
+     * for ambiguous width characters (eg. the roman numeral characters U+2160+)
+     * which aren't featured in monospace fonts. This is an important feature
+     * for achieving GB18030 compliance.
+     *
+     * The following glyphs will never be rescaled:
+     *
+     * - Emoji glyphs
+     * - Powerline glyphs
+     * - Nerd font glyphs
+     *
+     * Note that this doesn't work with the DOM renderer. The default is false.
+     */
+    rescaleOverlappingGlyphs?: boolean;
+
+    /**
      * Whether to select the word under the cursor on right click, this is
      * standard behavior in a lot of macOS applications.
      */
@@ -214,7 +253,7 @@ declare module '@daiyam/xterm-tab' {
     /**
      * The amount of scrollback in the terminal. Scrollback is the amount of
      * rows that are retained when lines are scrolled beyond the initial
-     * viewport.
+     * viewport. Defaults to 1000.
      */
     scrollback?: number;
 
@@ -295,10 +334,10 @@ declare module '@daiyam/xterm-tab' {
     windowOptions?: IWindowOptions;
 
     /**
-     * The width, in pixels, of the canvas for the overview ruler. The overview
-     * ruler will be hidden when not set.
+     * Controls the visibility and style of the overview ruler which visualizes
+     * decorations underneath the scroll bar.
      */
-    overviewRulerWidth?: number;
+    overviewRuler?: IOverviewRulerOptions;
   }
 
   /**
@@ -338,6 +377,27 @@ declare module '@daiyam/xterm-tab' {
      * be transparent)
      */
     selectionInactiveBackground?: string;
+    /**
+     * The scrollbar slider background color. Defaults to
+     * {@link ITerminalOptions.foreground foreground} with 20% opacity.
+     */
+    scrollbarSliderBackground?: string;
+    /**
+     * The scrollbar slider background color when hovered. Defaults to
+     * {@link ITerminalOptions.foreground foreground} with 40% opacity.
+     */
+    scrollbarSliderHoverBackground?: string;
+    /**
+     * The scrollbar slider background color when clicked. Defaults to
+     * {@link ITerminalOptions.foreground foreground} with 50% opacity.
+     */
+    scrollbarSliderActiveBackground?: string;
+    /**
+     * The border color of the overview ruler. This visually separates the
+     * terminal from the scroll bar when {@link IOverviewRulerOptions.width} is
+     * set. When this is not set it defaults to black (`#000000`).
+     */
+    overviewRulerBorder?: string;
     /** ANSI black (eg. `\x1b[30m`) */
     black?: string;
     /** ANSI red (eg. `\x1b[31m`) */
@@ -558,16 +618,13 @@ declare module '@daiyam/xterm-tab' {
      * What layer to render the decoration at when {@link backgroundColor} or
      * {@link foregroundColor} are used. `'bottom'` will render under the
      * selection, `'top`' will render above the selection\*.
-     *
-     * *\* The selection will render on top regardless of layer on the canvas
-     * renderer due to how it renders selection separately.*
      */
     readonly layer?: 'bottom' | 'top';
 
     /**
      * When defined, renders the decoration in the overview ruler to the right
-     * of the terminal. {@link ITerminalOptions.overviewRulerWidth} must be set
-     * in order to see the overview ruler.
+     * of the terminal. {@link IOverviewRulerOptions.width} must be set in order
+     * to see the overview ruler.
      * @param color The color of the decoration.
      * @param position The position of the decoration.
      */
@@ -588,6 +645,28 @@ declare module '@daiyam/xterm-tab' {
      * being printed to the terminal when `screenReaderMode` is enabled.
      */
     tooMuchOutput: string;
+  }
+
+  export interface IOverviewRulerOptions {
+    /**
+     * When defined, renders decorations in the overview ruler to the right of
+     * the terminal. This must be set in order to see the overview ruler.
+     * @param color The color of the decoration.
+     * @param position The position of the decoration.
+     */
+    width?: number;
+
+    /**
+     * Whether to show the top border of the overview ruler, which uses the
+     * {@link ITheme.overviewRulerBorder} color.
+     */
+    showTopBorder?: boolean;
+
+    /**
+     * Whether to show the bottom border of the overview ruler, which uses the
+     * {@link ITheme.overviewRulerBorder} color.
+     */
+    showBottomBorder?: boolean;
   }
 
   /**
@@ -953,6 +1032,18 @@ declare module '@daiyam/xterm-tab' {
     focus(): void;
 
     /**
+     * Input data to application side. The data is treated the same way input
+     * typed into the terminal would (ie. the {@link onData} event will fire).
+     * @param data The data to forward to the application.
+     * @param wasUserInput Whether the input is genuine user input. This is true
+     * by default and triggers additionalbehavior like focus or selection
+     * clearing. Set this to false if the data sent should not be treated like
+     * user input would, for example passing an escape sequence to the
+     * application.
+     */
+    input(data: string, wasUserInput?: boolean): void;
+
+    /**
      * Resizes the terminal. It's best practice to debounce calls to resize,
      * this will help ensure that the pty can respond to the resize event
      * before another one occurs.
@@ -962,7 +1053,8 @@ declare module '@daiyam/xterm-tab' {
     resize(columns: number, rows: number): void;
 
     /**
-     * Opens the terminal within an element.
+     * Opens the terminal within an element. This should also be called if the
+     * xterm.js element ever changes browser window.
      * @param parent The element to create the terminal within. This element
      * must be visible (have dimensions) when `open` is called as several DOM-
      * based measurements need to be performed when this function is called.
@@ -999,6 +1091,28 @@ declare module '@daiyam/xterm-tab' {
     attachCustomKeyEventHandler(customKeyEventHandler: (event: KeyboardEvent) => boolean): void;
 
     /**
+     * Attaches a custom wheel event handler which is run before keys are
+     * processed, giving consumers of xterm.js control over whether to proceed
+     * or cancel terminal wheel events.
+     * @param customWheelEventHandler The custom WheelEvent handler to attach.
+     * This is a function that takes a WheelEvent, allowing consumers to stop
+     * propagation and/or prevent the default action. The function returns
+     * whether the event should be processed by xterm.js.
+     *
+     * @example A handler that prevents all wheel events while ctrl is held from
+     * being processed.
+     * ```ts
+     * term.attachCustomWheelEventHandler(ev => {
+     *   if (ev.ctrlKey) {
+     *     return false;
+     *   }
+     *   return true;
+     * });
+     * ```
+     */
+    attachCustomWheelEventHandler(customWheelEventHandler: (event: WheelEvent) => boolean): void;
+
+    /**
      * Registers a link provider, allowing a custom parser to be used to match
      * and handle links. Multiple link providers can be used, they will be asked
      * in the order in which they are registered.
@@ -1027,7 +1141,7 @@ declare module '@daiyam/xterm-tab' {
      * render together, since they aren't drawn as optimally as individual
      * characters.
      *
-     * NOTE: character joiners are only used by the canvas renderer.
+     * NOTE: character joiners are only used by the webgl renderer.
      *
      * @param handler The function that determines character joins. It is called
      * with a string of text that is eligible for joining and returns an array
@@ -1039,7 +1153,7 @@ declare module '@daiyam/xterm-tab' {
 
     /**
      * (EXPERIMENTAL) Deregisters the character joiner if one was registered.
-     * NOTE: character joiners are only used by the canvas renderer.
+     * NOTE: character joiners are only used by the webgl renderer.
      * @param joinerId The character joiner's ID (returned after register)
      */
     deregisterCharacterJoiner(joinerId: number): void;
@@ -1178,7 +1292,7 @@ declare module '@daiyam/xterm-tab' {
     refresh(start: number, end: number): void;
 
     /**
-     * Clears the texture atlas of the canvas renderer if it's active. Doing
+     * Clears the texture atlas of the webgl renderer if it's active. Doing
      * this will force a redraw of all glyphs which can workaround issues
      * causing the texture to become corrupt, for example Chromium/Nvidia has an
      * issue where the texture gets messed up when resuming the OS from sleep.
@@ -1773,6 +1887,7 @@ declare module '@daiyam/xterm-tab' {
      * Unicode version dependent wcwidth implementation.
      */
     wcwidth(codepoint: number): 0 | 1 | 2;
+    charProperties(codepoint: number, preceding: number): number;
   }
 
   /**

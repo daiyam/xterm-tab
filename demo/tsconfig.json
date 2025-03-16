@@ -1,18 +1,23 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es2015",
+    "target": "es2021",
     "rootDir": ".",
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "xterm-addon-attach": ["../addons/xterm-addon-attach"],
-      "xterm-addon-fit": ["../addons/xterm-addon-fit"],
-      "xterm-addon-image": ["../addons/xterm-addon-image"],
-      "xterm-addon-search": ["../addons/xterm-addon-search"],
-      "xterm-addon-serialize": ["../addons/xterm-addon-serialize"],
-      "xterm-addon-web-links": ["../addons/xterm-addon-web-links"],
-      "xterm-addon-webgl": ["../addons/xterm-addon-webgl"]
+      "@daiyam/xterm-tab-addon-attach": ["../addons/addon-attach"],
+      "@daiyam/xterm-tab-addon-clipboard": ["../addons/addon-clipboard"],
+      "@daiyam/xterm-tab-addon-fit": ["../addons/addon-fit"],
+      "@daiyam/xterm-tab-addon-image": ["../addons/addon-image"],
+      "@daiyam/xterm-tab-addon-progress": ["../addons/addon-progress"],
+      "@daiyam/xterm-tab-addon-search": ["../addons/addon-search"],
+      "@daiyam/xterm-tab-addon-serialize": ["../addons/addon-serialize"],
+      "@daiyam/xterm-tab-addon-web-links": ["../addons/addon-web-links"],
+      "@daiyam/xterm-tab-addon-webgl": ["../addons/addon-webgl"],
+      "@daiyam/xterm-tab-addon-unicode11": ["../addons/addon-unicode11"],
+      "@daiyam/xterm-tab-addon-unicode-graphemes": ["../addons/addon-unicode-graphemes"],
+      "@daiyam/xterm-tab-addon-ligatures": ["../addons/addon-ligatures"]
     }
   },
   "include": [
