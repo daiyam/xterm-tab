@@ -1,6 +1,6 @@
 {
   "name": "@daiyam/xterm-tab-addon-ligatures",
-  "version": "0.9.0",
+  "version": "0.10.0-beta.98.0",
   "description": "Add support for programming ligatures to xterm.js",
   "author": {
     "name": "The xterm.js authors",
