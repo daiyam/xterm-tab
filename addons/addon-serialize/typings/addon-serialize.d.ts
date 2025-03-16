@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal, ITerminalAddon } from '@daiyam/xterm-tab';
+import { Terminal, IMarker, ITerminalAddon } from '@daiyam/xterm-tab';
 
 declare module '@daiyam/xterm-tab-addon-serialize' {
   /**

@@ -131,7 +131,7 @@ if (config.addon) {
     external: ['util', 'os', 'fs', 'path', 'stream', 'Terminal'],
     alias: {
       // Library ESM imports
-      "@xterm/xterm": ".",
+      "@daiyam/xterm-tab": ".",
       "@daiyam/xterm-tab-addon-attach": "./addons/addon-attach/lib/addon-attach.mjs",
       "@daiyam/xterm-tab-addon-clipboard": "./addons/addon-clipboard/lib/addon-clipboard.mjs",
       "@daiyam/xterm-tab-addon-fit": "./addons/addon-fit/lib/addon-fit.mjs",

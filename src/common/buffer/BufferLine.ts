@@ -563,8 +563,14 @@ export class BufferLine implements IBufferLine {
           result += WHITESPACE_CELL_CHAR;
           ++startCol;
         } else {
-          result += (content & Content.IS_COMBINED_MASK) ? this._combined[startCol] : (cp) ? stringFromCodePoint(cp) : WHITESPACE_CELL_CHAR;
-          startCol += (content >> Content.WIDTH_SHIFT) || 1; // always advance by 1
+          const chars = (content & Content.IS_COMBINED_MASK) ? this._combined[startCol] : (cp) ? stringFromCodePoint(cp) : WHITESPACE_CELL_CHAR;
+          result += chars;
+          if (outColumns) {
+            for (let i = 0; i < chars.length; ++i) {
+              outColumns.push(startCol);
+            }
+          }
+          startCol += (content >> Content.WIDTH_SHIFT) || 1; // always advance by at least 1
         }
       }
     } else {
@@ -574,18 +580,16 @@ export class BufferLine implements IBufferLine {
         if (content === Content.TAB_FILLER) {
           ++startCol;
         } else {
-          result += (content & Content.IS_COMBINED_MASK) ? this._combined[startCol] : (cp) ? stringFromCodePoint(cp) : WHITESPACE_CELL_CHAR;
-          startCol += (content >> Content.WIDTH_SHIFT) || 1; // always advance by 1
+          const chars = (content & Content.IS_COMBINED_MASK) ? this._combined[startCol] : (cp) ? stringFromCodePoint(cp) : WHITESPACE_CELL_CHAR;
+          result += chars;
+          if (outColumns) {
+            for (let i = 0; i < chars.length; ++i) {
+              outColumns.push(startCol);
+            }
+          }
+          startCol += (content >> Content.WIDTH_SHIFT) || 1; // always advance by at least 1
         }
       }
-      // const chars = (content & Content.IS_COMBINED_MASK) ? this._combined[startCol] : (cp) ? stringFromCodePoint(cp) : WHITESPACE_CELL_CHAR;
-      // result += chars;
-      // if (outColumns) {
-      //   for (let i = 0; i < chars.length; ++i) {
-      //     outColumns.push(startCol);
-      //   }
-      // }
-      // startCol += (content >> Content.WIDTH_SHIFT) || 1; // always advance by at least 1
     }
     if (outColumns) {
       outColumns.push(startCol);

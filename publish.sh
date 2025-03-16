@@ -23,12 +23,22 @@ if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
-cd ../addons/xterm-addon-canvas
+cd ../addons/xterm-addon-clipboard
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi
 
 cd ../xterm-addon-image
+if [[ -z $( should_publish ) ]]; then
+  npm publish --access=public
+fi
+
+cd ../xterm-addon-ligatures
+if [[ -z $( should_publish ) ]]; then
+  npm publish --access=public
+fi
+
+cd ../xterm-addon-progress
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
 fi

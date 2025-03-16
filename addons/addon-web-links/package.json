@@ -23,7 +23,7 @@
     "start": "node ../../demo/start"
   },
   "peerDependencies": {
-    "@xterm/xterm": "^5.0.0"
+    "@daiyam/xterm-tab": "^5.0.0"
   }
 
 }
