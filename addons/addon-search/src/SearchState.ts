@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import type { ISearchOptions } from '@xterm/addon-search';
+import type { ISearchOptions } from '@daiyam/xterm-tab-addon-search';
 
 /**
  * Manages search state including cached search terms, options tracking, and validation.

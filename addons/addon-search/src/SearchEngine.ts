@@ -3,8 +3,8 @@
  * @license MIT
  */
 
-import type { Terminal } from '@xterm/xterm';
-import type { ISearchOptions } from '@xterm/addon-search';
+import type { Terminal } from '@daiyam/xterm-tab';
+import type { ISearchOptions } from '@daiyam/xterm-tab-addon-search';
 import type { SearchLineCache } from './SearchLineCache';
 
 /**
