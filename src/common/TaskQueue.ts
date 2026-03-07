@@ -4,6 +4,7 @@
  */
 
 import { isNode } from 'common/Platform';
+import type { ILogService } from 'common/services/Services';
 
 interface ITaskQueue {
   /**
@@ -34,6 +35,11 @@ abstract class TaskQueue implements ITaskQueue {
   private _tasks: (() => boolean | void)[] = [];
   private _idleCallback?: number;
   private _i = 0;
+  protected readonly _logService: ILogService;
+
+  constructor(logService: ILogService) {
+    this._logService = logService;
+  }
 
   protected abstract _requestCallback(callback: CallbackWithDeadline): number;
   protected abstract _cancelCallback(identifier: number): void;
@@ -74,14 +80,14 @@ abstract class TaskQueue implements ITaskQueue {
     let lastDeadlineRemaining = deadline.timeRemaining();
     let deadlineRemaining = 0;
     while (this._i < this._tasks.length) {
-      taskDuration = Date.now();
+      taskDuration = performance.now();
       if (!this._tasks[this._i]()) {
         this._i++;
       }
-      // other than performance.now, Date.now might not be stable (changes on wall clock changes),
-      // this is not an issue here as a clock change during a short running task is very unlikely
-      // in case it still happened and leads to negative duration, simply assume 1 msec
-      taskDuration = Math.max(1, Date.now() - taskDuration);
+      // other than performance.now, performance.now might not be stable (changes on wall clock
+      // changes), this is not an issue here as a clock change during a short running task is very
+      // unlikely in case it still happened and leads to negative duration, simply assume 1 msec
+      taskDuration = Math.max(1, performance.now() - taskDuration);
       longestTask = Math.max(taskDuration, longestTask);
       // Guess the following task will take a similar time to the longest task in this batch, allow
       // additional room to try avoid exceeding the deadline
@@ -90,7 +96,7 @@ abstract class TaskQueue implements ITaskQueue {
         // Warn when the time exceeding the deadline is over 20ms, if this happens in practice the
         // task should be split into sub-tasks to ensure the UI remains responsive.
         if (lastDeadlineRemaining - taskDuration < -20) {
-          console.warn(`task queue exceeded allotted deadline by ${Math.abs(Math.round(lastDeadlineRemaining - taskDuration))}ms`);
+          this._logService.warn(`task queue exceeded allotted deadline by ${Math.abs(Math.round(lastDeadlineRemaining - taskDuration))}ms`);
         }
         this._start();
         return;
@@ -116,9 +122,9 @@ export class PriorityTaskQueue extends TaskQueue {
   }
 
   private _createDeadline(duration: number): ITaskDeadline {
-    const end = Date.now() + duration;
+    const end = performance.now() + duration;
     return {
-      timeRemaining: () => Math.max(0, end - Date.now())
+      timeRemaining: () => Math.max(0, end - performance.now())
     };
   }
 }
@@ -151,8 +157,8 @@ export const IdleTaskQueue = (!isNode && 'requestIdleCallback' in window) ? Idle
 export class DebouncedIdleTask {
   private _queue: ITaskQueue;
 
-  constructor() {
-    this._queue = new IdleTaskQueue();
+  constructor(logService: ILogService) {
+    this._queue = new IdleTaskQueue(logService);
   }
 
   public set(task: () => boolean | void): void {

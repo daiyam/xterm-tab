@@ -1,6 +1,6 @@
 {
   "name": "@daiyam/xterm-tab-addon-clipboard",
-  "version": "0.2.0-beta.102.0",
+  "version": "0.2.0",
   "author": {
     "name": "The xterm.js authors",
     "url": "https://xtermjs.org/"
@@ -16,14 +16,11 @@
     "xterm.js"
   ],
   "scripts": {
-    "build": "../../node_modules/.bin/tsc -p .",
+    "build": "../../node_modules/.bin/tsgo -p .",
     "prepackage": "npm run build",
     "package": "../../node_modules/.bin/webpack",
     "prepublishOnly": "npm run package",
     "start": "node ../../demo/start"
-  },
-  "peerDependencies": {
-    "@daiyam/xterm-tab": "^5.4.0"
   },
   "dependencies": {
     "js-base64": "^3.7.5"

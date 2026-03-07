@@ -152,8 +152,17 @@ declare module '@daiyam/xterm-tab-addon-search' {
     public clearActiveDecoration(): void;
 
     /**
-     * When decorations are enabled, fires when
-     * the search results change.
+     * Fires after a search is performed.
+     */
+    readonly onAfterSearch: IEvent<void>;
+
+    /**
+     * Fires before a search is performed.
+     */
+    readonly onBeforeSearch: IEvent<void>;
+
+    /**
+     * When decorations are enabled, fires when the search results change.
      */
     readonly onDidChangeResults: IEvent<ISearchResultChangeEvent>;
   }

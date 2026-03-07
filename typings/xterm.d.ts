@@ -58,9 +58,18 @@ declare module '@daiyam/xterm-tab' {
     convertEol?: boolean;
 
     /**
-     * Whether the cursor blinks.
+     * Whether the cursor blinks. The blinking will stop after 5 minutes of idle
+     * time (refreshed by clicking, focusing or the cursor moving). The default
+     * is false.
      */
     cursorBlink?: boolean;
+
+    /**
+     * The interval in milliseconds for the blink attribute. This is the amount
+     * of time text remains visible or hidden before toggling. Set to 0 to
+     * disable blinking. The default is 0.
+     */
+    blinkIntervalDuration?: number;
 
     /**
      * The style of the cursor when the terminal is focused.
@@ -76,15 +85,6 @@ declare module '@daiyam/xterm-tab' {
      * The style of the cursor when the terminal is not focused.
      */
     cursorInactiveStyle?: 'outline' | 'block' | 'bar' | 'underline' | 'none';
-
-    /**
-     * Whether to draw custom glyphs for block element and box drawing
-     * characters instead of using the font. This should typically result in
-     * better rendering with continuous lines, even when line height and letter
-     * spacing is used. Note that this doesn't work with the DOM renderer which
-     * renders all characters using the font. The default is true.
-     */
-    customGlyphs?: boolean;
 
     /**
      * Whether input should be disabled.
@@ -106,13 +106,6 @@ declare module '@daiyam/xterm-tab' {
      * Whether to draw bold text in bright colors. The default is true.
      */
     drawBoldTextInBrightColors?: boolean;
-
-    /**
-     * The modifier key hold to multiply scroll speed.
-     * @deprecated This option is no longer available and will always use alt.
-     * Setting this will be ignored.
-     */
-    fastScrollModifier?: 'none' | 'alt' | 'ctrl' | 'shift';
 
     /**
      * The scroll speed multiplier used for fast scrolling when `Alt` is held.
@@ -214,9 +207,16 @@ declare module '@daiyam/xterm-tab' {
     minimumContrastRatio?: number;
 
     /**
+     * Control various quirks features that are either non-standard or standard
+     * in but generally rejected in modern terminals.
+     */
+    quirks?: ITerminalQuirks;
+
+    /**
      * Whether to reflow the line containing the cursor when the terminal is
      * resized. Defaults to false, because shells usually handle this
-     * themselves.
+     * themselves. Note that this will not move the cursor position, only the
+     * line contents.
      */
     reflowCursorLine?: boolean;
 
@@ -276,6 +276,11 @@ declare module '@daiyam/xterm-tab' {
     scrollSensitivity?: number;
 
     /**
+     * Options for configuring the scrollbar.
+     */
+    scrollbar?: IScrollbarOptions;
+
+    /**
      * The duration to smoothly scroll between the origin and the target in
      * milliseconds. Set to 0 to disable smooth scrolling and scroll instantly.
      */
@@ -292,23 +297,9 @@ declare module '@daiyam/xterm-tab' {
     theme?: ITheme;
 
     /**
-     * Whether "Windows mode" is enabled. Because Windows backends winpty and
-     * conpty operate by doing line wrapping on their side, xterm.js does not
-     * have access to wrapped lines. When Windows mode is enabled the following
-     * changes will be in effect:
-     *
-     * - Reflow is disabled.
-     * - Lines are assumed to be wrapped if the last character of the line is
-     *   not whitespace.
-     *
-     * When using conpty on Windows 11 version >= 21376, it is recommended to
-     * disable this because native text wrapping sequences are output correctly
-     * thanks to https://github.com/microsoft/terminal/issues/405
-     *
-     * @deprecated Use {@link windowsPty}. This value will be ignored if
-     * windowsPty is set.
+     * Enable various VT extensions.
      */
-    windowsMode?: boolean;
+    vtExtensions?: IVtExtensions;
 
     /**
      * Compatibility information when the pty is known to be hosted on Windows.
@@ -339,12 +330,6 @@ declare module '@daiyam/xterm-tab' {
      * All features are disabled by default for security reasons.
      */
     windowOptions?: IWindowOptions;
-
-    /**
-     * Controls the visibility and style of the overview ruler which visualizes
-     * decorations underneath the scroll bar.
-     */
-    overviewRuler?: IOverviewRulerOptions;
   }
 
   /**
@@ -361,6 +346,13 @@ declare module '@daiyam/xterm-tab' {
      * The number of rows in the terminal.
      */
     rows?: number;
+
+    /**
+     * Whether to show the cursor immediately when the terminal is created.
+     * When false (default), the cursor will not be visible until the terminal
+     * is focused for the first time.
+     */
+    showCursorImmediately?: boolean;
   }
 
   /**
@@ -386,23 +378,23 @@ declare module '@daiyam/xterm-tab' {
     selectionInactiveBackground?: string;
     /**
      * The scrollbar slider background color. Defaults to
-     * {@link ITerminalOptions.foreground foreground} with 20% opacity.
+     * {@link ITheme.foreground} with 20% opacity.
      */
     scrollbarSliderBackground?: string;
     /**
      * The scrollbar slider background color when hovered. Defaults to
-     * {@link ITerminalOptions.foreground foreground} with 40% opacity.
+     * {@link ITheme.foreground} with 40% opacity.
      */
     scrollbarSliderHoverBackground?: string;
     /**
      * The scrollbar slider background color when clicked. Defaults to
-     * {@link ITerminalOptions.foreground foreground} with 50% opacity.
+     * {@link ITheme.foreground} with 50% opacity.
      */
     scrollbarSliderActiveBackground?: string;
     /**
      * The border color of the overview ruler. This visually separates the
-     * terminal from the scroll bar when {@link IOverviewRulerOptions.width} is
-     * set. When this is not set it defaults to black (`#000000`).
+     * terminal from the scroll bar when {@link IScrollbarOptions.width} is set.
+     * When this is not set it defaults to black (`#000000`).
      */
     overviewRulerBorder?: string;
     /** ANSI black (eg. `\x1b[30m`) */
@@ -439,6 +431,66 @@ declare module '@daiyam/xterm-tab' {
     brightWhite?: string;
     /** ANSI extended colors (16-255) */
     extendedAnsi?: string[];
+  }
+
+  /**
+   * Control various quirks features that are either non-standard or standard
+   * in but generally rejected in modern terminals.
+   */
+  export interface ITerminalQuirks {
+    /**
+     * Enables support for DECSET 12 and DECRST 12 which controls cursor blink.
+     * Programs such as `vim` may use this to set the cursor blink state but may
+     * not change it back when exiting. Generally the terminal emulator should
+     * be in control of whether the cursor blinks or not and the application in
+     * modern terminals. Note that DECRQM works regardless of this option.
+     */
+    allowSetCursorBlink?: boolean;
+  }
+
+  /**
+   * Enable certain optional VT extensions.
+   */
+  export interface IVtExtensions {
+    /**
+     * Whether the [kitty keyboard protocol][0] (`CSI =|?|>|< u`) is enabled.
+     * When enabled, the terminal will respond to keyboard protocol queries and
+     * allow programs to enable enhanced keyboard reporting. The default is
+     * false.
+     *
+     * [0]: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
+     */
+    kittyKeyboard?: boolean;
+
+    /**
+     * Whether [SGR 221 (not bold) and SGR 222 (not faint) are enabled][0].
+     * These are kitty extensions that allow resetting bold and faint
+     * independently. The default is true.
+     *
+     * [0]: https://sw.kovidgoyal.net/kitty/misc-protocol/
+     */
+    kittySgrBoldFaintControl?: boolean;
+
+    /**
+     * Whether [win32-input-mode][0] (`DECSET 9001`) is enabled. When enabled,
+     * the terminal will allow programs to enable win32 INPUT_RECORD  keyboard
+     * reporting via `CSI ? 9001 h`. The default is false.
+     *
+     * [0]: https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md
+     */
+    win32InputMode?: boolean;
+
+    /**
+     * Whether [color scheme query and notification][0] (`CSI ? 996 n` and
+     * `DECSET 2031`) is enabled. When enabled, the terminal will respond to
+     * color scheme queries with `CSI ? 997 ; 1 n` (dark) or `CSI ? 997 ; 2 n`
+     * (light) based on the relative luminance of the background and foreground
+     * theme colors. Programs can enable unsolicited notifications via
+     * `CSI ? 2031 h`. The default is true.
+     *
+     * [0]: https://contour-terminal.org/vt-extensions/color-palette-update-notifications/
+     */
+    colorSchemeQuery?: boolean;
   }
 
   /**
@@ -630,8 +682,8 @@ declare module '@daiyam/xterm-tab' {
 
     /**
      * When defined, renders the decoration in the overview ruler to the right
-     * of the terminal. {@link IOverviewRulerOptions.width} must be set in order
-     * to see the overview ruler.
+     * of the terminal. {@link IScrollbarOptions.width} must be set in order to
+     * see the overview ruler.
      * @param color The color of the decoration.
      * @param position The position of the decoration.
      */
@@ -654,15 +706,10 @@ declare module '@daiyam/xterm-tab' {
     tooMuchOutput: string;
   }
 
+  /**
+   * Options for configuring the overview ruler rendered beside the scrollbar.
+   */
   export interface IOverviewRulerOptions {
-    /**
-     * When defined, renders decorations in the overview ruler to the right of
-     * the terminal. This must be set in order to see the overview ruler.
-     * @param color The color of the decoration.
-     * @param position The position of the decoration.
-     */
-    width?: number;
-
     /**
      * Whether to show the top border of the overview ruler, which uses the
      * {@link ITheme.overviewRulerBorder} color.
@@ -674,6 +721,34 @@ declare module '@daiyam/xterm-tab' {
      * {@link ITheme.overviewRulerBorder} color.
      */
     showBottomBorder?: boolean;
+  }
+
+  /**
+   * Options for configuring the scrollbar.
+   */
+  export interface IScrollbarOptions {
+    /**
+     * Whether to show the scrollbar. When false, this supersedes
+     * {@link IScrollbarOptions.width}. Defaults to true.
+     */
+    showScrollbar?: boolean;
+    /**
+     * Whether to show arrows at the top and bottom of the scrollbar. Defaults
+     * to false.
+     */
+    showArrows?: boolean;
+
+    /**
+     * The width of the scrollbar and overview ruler in CSS pixels. When set,
+     * this enables the overview ruler.
+     */
+    width?: number;
+
+    /**
+     * Controls the visibility and style of the overview ruler which visualizes
+     * decorations underneath the scroll bar.
+     */
+    overviewRuler?: IOverviewRulerOptions;
   }
 
   /**
@@ -843,6 +918,12 @@ declare module '@daiyam/xterm-tab' {
     readonly element: HTMLElement | undefined;
 
     /**
+     * The screen element containing the terminal's canvas rendering layers and
+     * decorations, excluding the viewport and the scrollbar.
+     */
+    readonly screenElement: HTMLElement | undefined;
+
+    /**
      * The textarea that accepts input for the terminal.
      */
     readonly textarea: HTMLTextAreaElement | undefined;
@@ -867,8 +948,8 @@ declare module '@daiyam/xterm-tab' {
     readonly buffer: IBufferNamespace;
 
     /**
-     * (EXPERIMENTAL) Get all markers registered against the buffer. If the alt
-     * buffer is active this will always return [].
+     * Get all markers registered against the buffer. If the alt buffer is
+     * active this will always return [].
      */
     readonly markers: ReadonlyArray<IMarker>;
 
@@ -878,8 +959,8 @@ declare module '@daiyam/xterm-tab' {
     readonly parser: IParser;
 
     /**
-     * (EXPERIMENTAL) Get the Unicode handling interface
-     * to register and switch Unicode version.
+     * (EXPERIMENTAL) Get the Unicode handling interface to register and switch
+     * Unicode version.
      */
     readonly unicode: IUnicodeHandling;
 
@@ -887,6 +968,12 @@ declare module '@daiyam/xterm-tab' {
      * Gets the terminal modes as set by SM/DECSET.
      */
     readonly modes: IModes;
+
+    /**
+     * The dimensions of the terminal. This will be undefined before
+     * {@link open} is called.
+     */
+    readonly dimensions: IRenderDimensions | undefined;
 
     /**
      * Gets or sets the terminal options. This supports setting multiple
@@ -1029,6 +1116,12 @@ declare module '@daiyam/xterm-tab' {
     onTitleChange: IEvent<string>;
 
     /**
+     * Adds an event listener for when the terminal's dimensions change.
+     * @returns an `IDisposable` to stop listening.
+     */
+    onDimensionsChange: IEvent<IRenderDimensions>;
+
+    /**
      * Unfocus the terminal.
      */
     blur(): void;
@@ -1128,9 +1221,9 @@ declare module '@daiyam/xterm-tab' {
     registerLinkProvider(linkProvider: ILinkProvider): IDisposable;
 
     /**
-     * (EXPERIMENTAL) Registers a character joiner, allowing custom sequences of
-     * characters to be rendered as a single unit. This is useful in particular
-     * for rendering ligatures and graphemes, among other things.
+     * Registers a character joiner, allowing custom sequences of characters to
+     * be rendered as a single unit. This is useful in particular for rendering
+     * ligatures and graphemes, among other things.
      *
      * Each registered character joiner is called with a string of text
      * representing a portion of a line in the terminal that can be rendered as
@@ -1148,8 +1241,6 @@ declare module '@daiyam/xterm-tab' {
      * render together, since they aren't drawn as optimally as individual
      * characters.
      *
-     * NOTE: character joiners are only used by the webgl renderer.
-     *
      * @param handler The function that determines character joins. It is called
      * with a string of text that is eligible for joining and returns an array
      * where each entry is an array containing the start (inclusive) and end
@@ -1159,8 +1250,8 @@ declare module '@daiyam/xterm-tab' {
     registerCharacterJoiner(handler: (text: string) => [number, number][]): number;
 
     /**
-     * (EXPERIMENTAL) Deregisters the character joiner if one was registered.
-     * NOTE: character joiners are only used by the webgl renderer.
+     * Deregisters the character joiner if one was registered. Note that
+     * character joiners are only used by the webgl renderer.
      * @param joinerId The character joiner's ID (returned after register)
      */
     deregisterCharacterJoiner(joinerId: number): void;
@@ -1173,7 +1264,7 @@ declare module '@daiyam/xterm-tab' {
     registerMarker(cursorYOffset?: number): IMarker;
 
     /**
-     * (EXPERIMENTAL) Adds a decoration to the terminal using
+     * Registers a decoration to the terminal.
      * @param decorationOptions, which takes a marker and an optional anchor,
      * width, height, and x offset from the anchor. Returns the decoration or
      * undefined if the alt buffer is active or the marker has already been
@@ -1762,6 +1853,26 @@ declare module '@daiyam/xterm-tab' {
 
     /** Whether the cell has the default attribute (no color or style). */
     isAttributeDefault(): boolean;
+
+    /** Gets the underline style. */
+    getUnderlineStyle(): number;
+    /** Gets the underline color number. */
+    getUnderlineColor(): number;
+    /** Gets the underline color mode. */
+    getUnderlineColorMode(): number;
+    /** Whether the cell is using the RGB underline color mode. */
+    isUnderlineColorRGB(): boolean;
+    /** Whether the cell is using the palette underline color mode. */
+    isUnderlineColorPalette(): boolean;
+    /** Whether the cell is using the default underline color mode. */
+    isUnderlineColorDefault(): boolean;
+
+    /**
+     * Compares the cell's attributes (colors and styles) with another cell.
+     * This does not compare the cell's content and excludes URL ids and
+     * underline variant offsets.
+     */
+    attributesEquals(other: IBufferCell): boolean;
   }
 
   /**
@@ -1865,7 +1976,7 @@ declare module '@daiyam/xterm-tab' {
      * @param id Specifies the function identifier under which the callback gets
      * registered, e.g. {intermediates: '%' final: 'G'} for default charset
      * selection.
-     * @param callback The function to handle the sequence.
+     * @param handler The function to handle the sequence.
      * Return `true` if the sequence was handled, `false` if the parser should
      * try a previous handler. The most recently added handler is tried first.
      * @returns An IDisposable you can call to remove this handler.
@@ -1888,6 +1999,24 @@ declare module '@daiyam/xterm-tab' {
      * @returns An IDisposable you can call to remove this handler.
      */
     registerOscHandler(ident: number, callback: (data: string) => boolean | Promise<boolean>): IDisposable;
+
+    /**
+     * Adds a handler for APC escape sequences.
+     * @param ident The identifier (first character) of the sequence as a
+     * character code, e.g. 71 for 'G' (Kitty graphics protocol).
+     * @param callback The function to handle the sequence. Note that the
+     * function will only be called once if the sequence finished successfully.
+     * There is currently no way to intercept smaller data chunks, data chunks
+     * will be stored up until the sequence is finished. Since APC sequences are
+     * not limited by the amount of data this might impose a problem for big
+     * payloads. Currently xterm.js limits APC payload to 10 MB which should
+     * give enough room for most use cases. The callback is called with APC data
+     * string (excluding the identifier character). Return `true` if the
+     * sequence was handled, `false` if the parser should try a previous
+     * handler. The most recently added handler is tried first.
+     * @returns An IDisposable you can call to remove this handler.
+     */
+    registerApcHandler(ident: number, callback: (data: string) => boolean | Promise<boolean>): IDisposable;
   }
 
   /**
@@ -1969,8 +2098,135 @@ declare module '@daiyam/xterm-tab' {
      */
     readonly sendFocusMode: boolean;
     /**
+     * Show Cursor (DECTCEM): `CSI ? 2 5 h`
+     */
+    readonly showCursor: boolean;
+    /**
+     * Synchronized Output Mode: `CSI ? 2 0 2 6 h`
+     *
+     * When enabled, output is buffered and only rendered when the mode is
+     * disabled, allowing for atomic screen updates without tearing.
+     */
+    readonly synchronizedOutputMode: boolean;
+    /**
+     * Win32 Input Mode: `CSI ? 9 0 0 1 h`
+     *
+     * When enabled, keyboard input is sent as Win32 INPUT_RECORD format:
+     * `CSI Vk ; Sc ; Uc ; Kd ; Cs ; Rc _`
+     */
+    readonly win32InputMode: boolean;
+    /**
      * Auto-Wrap Mode (DECAWM): `CSI ? 7 h`
      */
     readonly wraparoundMode: boolean;
+  }
+
+  /**
+   * An object containing a width and height in pixels.
+   */
+  export interface IDimensions {
+    width: number;
+    height: number;
+  }
+
+  /**
+   * An object containing a top and left offset.
+   */
+  export interface IOffset {
+    top: number;
+    left: number;
+  }
+
+  /**
+   * The dimensions of the terminal.
+   */
+  export interface IRenderDimensions {
+    /**
+     * Dimensions measured in CSS pixels (ie. device pixels / device pixel
+     * ratio).
+     */
+    css: {
+      /**
+       * The dimensions of the canvas.
+       */
+      canvas: IDimensions;
+      /**
+       * The dimensions of a single cell.
+       */
+      cell: IDimensions;
+    };
+    /**
+     * Dimensions measured in actual pixels as rendered to the device.
+     */
+    device: {
+      /**
+       * The dimensions of the canvas.
+       */
+      canvas: IDimensions;
+      /**
+       * The dimensions of a single cell.
+       */
+      cell: IDimensions;
+      /**
+       * The dimensions of a single character within a cell, including its
+       * offset within the cell.
+       */
+      char: IDimensions & IOffset;
+    };
+  }
+
+  /**
+   * An object containing a width and height in pixels.
+   */
+  export interface IDimensions {
+    width: number;
+    height: number;
+  }
+
+  /**
+   * An object containing a top and left offset.
+   */
+  export interface IOffset {
+    top: number;
+    left: number;
+  }
+
+  /**
+   * The dimensions of the terminal, this is constructed and available after
+   * {@link Terminal.open} is called.
+   */
+  export interface IRenderDimensions {
+    /**
+     * Dimensions measured in CSS pixels (ie. device pixels / device pixel
+     * ratio).
+     */
+    css: {
+      /**
+       * The dimensions of the canvas which is the full terminal size.
+       */
+      canvas: IDimensions;
+      /**
+       * The dimensions of a single cell.
+       */
+      cell: IDimensions;
+    };
+    /**
+     * Dimensions measured in actual pixels as rendered to the device.
+     */
+    device: {
+      /**
+       * The dimensions of the canvas which is the full terminal size.
+       */
+      canvas: IDimensions;
+      /**
+       * The dimensions of a single cell.
+       */
+      cell: IDimensions;
+      /**
+       * The dimensions of a single character within a cell, including its
+       * offset within the cell.
+       */
+      char: IDimensions & IOffset;
+    };
   }
 }

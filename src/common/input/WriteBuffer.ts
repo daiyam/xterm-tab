@@ -4,8 +4,8 @@
  * @license MIT
  */
 
-import { Disposable } from 'vs/base/common/lifecycle';
-import { Emitter } from 'vs/base/common/event';
+import { Disposable } from 'common/Lifecycle';
+import { Emitter } from 'common/Event';
 
 declare const setTimeout: (handler: () => void, timeout?: number) => void;
 
@@ -52,6 +52,38 @@ export class WriteBuffer extends Disposable {
 
   public handleUserInput(): void {
     this._didUserInput = true;
+  }
+
+  /**
+   * Flushes all pending writes synchronously. This is useful when you need to
+   * ensure all queued data is processed before performing an operation that
+   * depends upon everything being parsed like resize.
+   *
+   * Note: This is unreliable with async parser handlers as it does not wait for
+   * promises to resolve.
+   */
+  public flushSync(): void {
+    // exit early if another sync write loop is active
+    if (this._isSyncWriting) {
+      return;
+    }
+    this._isSyncWriting = true;
+
+    // Process all pending chunks synchronously
+    let chunk: string | Uint8Array | undefined;
+    while (chunk = this._writeBuffer.shift()) {
+      this._action(chunk);
+      const cb = this._callbacks.shift();
+      if (cb) cb();
+    }
+
+    // Reset buffer state
+    this._pendingData = 0;
+    this._bufferOffset = 0x7FFFFFFF;
+    this._writeBuffer.length = 0;
+    this._callbacks.length = 0;
+
+    this._isSyncWriting = false;
   }
 
   /**
@@ -137,7 +169,7 @@ export class WriteBuffer extends Disposable {
    * effectively lowering the redrawing needs, schematically:
    *
    *   macroTask _innerWrite:
-   *     if (Date.now() - (lastTime | 0) < WRITE_TIMEOUT_MS):
+   *     if (performance.now() - (lastTime | 0) < WRITE_TIMEOUT_MS):
    *        schedule microTask _innerWrite(lastTime)
    *     else:
    *        schedule macroTask _innerWrite(0)
@@ -158,7 +190,7 @@ export class WriteBuffer extends Disposable {
    * Note, for pure sync code `lastTime` and `promiseResult` have no meaning.
    */
   protected _innerWrite(lastTime: number = 0, promiseResult: boolean = true): void {
-    const startTime = lastTime || Date.now();
+    const startTime = lastTime || performance.now();
     while (this._writeBuffer.length > this._bufferOffset) {
       const data = this._writeBuffer[this._bufferOffset];
       const result = this._action(data, promiseResult);
@@ -186,7 +218,7 @@ export class WriteBuffer extends Disposable {
          * responsibility to slice hard work), but we can at least schedule a screen update as we
          * gain control.
          */
-        const continuation: (r: boolean) => void = (r: boolean) => Date.now() - startTime >= WRITE_TIMEOUT_MS
+        const continuation: (r: boolean) => void = (r: boolean) => performance.now() - startTime >= WRITE_TIMEOUT_MS
           ? setTimeout(() => this._innerWrite(0, r))
           : this._innerWrite(startTime, r);
 
@@ -202,7 +234,8 @@ export class WriteBuffer extends Disposable {
          * throughput by eval'ing `startTime` upfront pulling at least one more chunk into the
          * current microtask queue (executed before setTimeout).
          */
-        // const continuation: (r: boolean) => void = Date.now() - startTime >= WRITE_TIMEOUT_MS
+        // const continuation: (r: boolean) => void = performance.now() - startTime >=
+        //     WRITE_TIMEOUT_MS
         //   ? r => setTimeout(() => this._innerWrite(0, r))
         //   : r => this._innerWrite(startTime, r);
 
@@ -222,7 +255,7 @@ export class WriteBuffer extends Disposable {
       this._bufferOffset++;
       this._pendingData -= data.length;
 
-      if (Date.now() - startTime >= WRITE_TIMEOUT_MS) {
+      if (performance.now() - startTime >= WRITE_TIMEOUT_MS) {
         break;
       }
     }

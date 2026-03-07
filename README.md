@@ -29,7 +29,7 @@ License
 -------
 
 Copyright &copy; 2021-present Baptiste Augrain<br />
-Copyright &copy; 2017-2019, [The xterm.js authors](https://github.com/xtermjs/xterm.js/graphs/contributors) (MIT License)<br />
+Copyright &copy; 2017-present, [The xterm.js authors](https://github.com/xtermjs/xterm.js/graphs/contributors) (MIT License)<br />
 Copyright &copy; 2014-2017, SourceLair, Private Company ([www.sourcelair.com](https://www.sourcelair.com/home)) (MIT License)<br />
 Copyright &copy; 2012-2013, Christopher Jeffrey (MIT License)
 

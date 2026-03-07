@@ -1,6 +1,6 @@
 {
   "name": "@daiyam/xterm-tab-addon-image",
-  "version": "0.9.0-beta.119.0",
+  "version": "0.9.0",
   "author": {
     "name": "The xterm.js authors",
     "url": "https://xtermjs.org/"
@@ -18,16 +18,13 @@
     "xterm.js"
   ],
   "scripts": {
-    "prepackage": "../../node_modules/.bin/tsc -p .",
+    "prepackage": "../../node_modules/.bin/tsgo -p .",
     "package": "../../node_modules/.bin/webpack",
     "prepublishOnly": "npm run package",
     "start": "node ../../demo/start"
   },
-  "peerDependencies": {
-    "@daiyam/xterm-tab": "^5.2.0"
-  },
   "devDependencies": {
     "sixel": "^0.16.0",
-    "xterm-wasm-parts": "^0.1.0"
+    "xterm-wasm-parts": "^0.3.0"
   }
 }

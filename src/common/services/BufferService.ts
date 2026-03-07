@@ -3,12 +3,12 @@
  * @license MIT
  */
 
-import { Disposable } from 'vs/base/common/lifecycle';
+import { Disposable } from 'common/Lifecycle';
 import { IAttributeData, IBufferLine } from 'common/Types';
 import { BufferSet } from 'common/buffer/BufferSet';
 import { IBuffer, IBufferSet } from 'common/buffer/Types';
-import { IBufferService, IOptionsService } from 'common/services/Services';
-import { Emitter } from 'vs/base/common/event';
+import { IBufferService, ILogService, IOptionsService, type IBufferResizeEvent } from 'common/services/Services';
+import { Emitter } from 'common/Event';
 
 export const MINIMUM_COLS = 2; // Less than 2 can mess with wide chars
 export const MINIMUM_ROWS = 1;
@@ -22,7 +22,7 @@ export class BufferService extends Disposable implements IBufferService {
   /** Whether the user is scrolling (locks the scroll position) */
   public isUserScrolling: boolean = false;
 
-  private readonly _onResize = this._register(new Emitter<{ cols: number, rows: number }>());
+  private readonly _onResize = this._register(new Emitter<IBufferResizeEvent>());
   public readonly onResize = this._onResize.event;
   private readonly _onScroll = this._register(new Emitter<number>());
   public readonly onScroll = this._onScroll.event;
@@ -32,23 +32,26 @@ export class BufferService extends Disposable implements IBufferService {
   /** An IBufferline to clone/copy from for new blank lines */
   private _cachedBlankLine: IBufferLine | undefined;
 
-  constructor(@IOptionsService optionsService: IOptionsService) {
+  constructor(
+    @IOptionsService optionsService: IOptionsService,
+    @ILogService logService: ILogService
+  ) {
     super();
     this.cols = Math.max(optionsService.rawOptions.cols || 0, MINIMUM_COLS);
     this.rows = Math.max(optionsService.rawOptions.rows || 0, MINIMUM_ROWS);
-    this.buffers = this._register(new BufferSet(optionsService, this));
+    this.buffers = this._register(new BufferSet(optionsService, this, logService));
     this._register(this.buffers.onBufferActivate(e => {
       this._onScroll.fire(e.activeBuffer.ydisp);
     }));
   }
 
   public resize(cols: number, rows: number): void {
+    const colsChanged = this.cols !== cols;
+    const rowsChanged = this.rows !== rows;
     this.cols = cols;
     this.rows = rows;
     this.buffers.resize(cols, rows);
-    // TODO: This doesn't fire when scrollback changes - add a resize event to BufferSet and forward
-    //       event
-    this._onResize.fire({ cols, rows });
+    this._onResize.fire({ cols, rows, colsChanged, rowsChanged });
   }
 
   public reset(): void {

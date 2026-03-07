@@ -37,15 +37,15 @@ export class TimeBasedDebouncer implements IRenderDebouncer {
   public refresh(rowStart: number | undefined, rowEnd: number | undefined, rowCount: number): void {
     this._rowCount = rowCount;
     // Get the min/max row start/end for the arg values
-    rowStart = rowStart !== undefined ? rowStart : 0;
-    rowEnd = rowEnd !== undefined ? rowEnd : this._rowCount - 1;
+    rowStart = rowStart ?? 0;
+    rowEnd = rowEnd ?? this._rowCount - 1;
     // Set the properties to the updated values
     this._rowStart = this._rowStart !== undefined ? Math.min(this._rowStart, rowStart) : rowStart;
     this._rowEnd = this._rowEnd !== undefined ? Math.max(this._rowEnd, rowEnd) : rowEnd;
 
     // Only refresh if the time since last refresh is above a threshold, otherwise wait for
     // enough time to pass before refreshing again.
-    const refreshRequestTime: number = Date.now();
+    const refreshRequestTime: number = performance.now();
     if (refreshRequestTime - this._lastRefreshMs >= this._debounceThresholdMS) {
       // Enough time has lapsed since the last refresh; refresh immediately
       this._lastRefreshMs = refreshRequestTime;
@@ -57,7 +57,7 @@ export class TimeBasedDebouncer implements IRenderDebouncer {
       this._additionalRefreshRequested = true;
 
       this._refreshTimeoutID = window.setTimeout(() => {
-        this._lastRefreshMs = Date.now();
+        this._lastRefreshMs = performance.now();
         this._innerRefresh();
         this._additionalRefreshRequested = false;
         this._refreshTimeoutID = undefined; // No longer need to clear the timeout
