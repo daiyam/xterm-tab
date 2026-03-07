@@ -8,7 +8,7 @@
   "main": "lib/addon-image.js",
   "module": "lib/addon-image.mjs",
   "types": "typings/addon-image.d.ts",
-  "repository": "https://github.com/xtermjs/xterm.js/tree/master/addons/addon-image",
+  "repository": "https://github.com/daiyam/xterm-tab/tree/master/addons/addon-image",
   "license": "MIT",
   "keywords": [
     "terminal",

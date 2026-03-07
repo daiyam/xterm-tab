@@ -9,7 +9,7 @@
   "main": "lib/addon-ligatures.js",
   "module": "lib/addon-ligatures.mjs",
   "types": "typings/addon-ligatures.d.ts",
-  "repository": "https://github.com/xtermjs/xterm.js/tree/master/addons/addon-ligatures",
+  "repository": "https://github.com/daiyam/xterm-tab/tree/master/addons/addon-ligatures",
   "engines": {
     "node": ">8.0.0"
   },

@@ -8,7 +8,7 @@
   "main": "lib/addon-progress.js",
   "module": "lib/addon-progress.mjs",
   "types": "typings/addon-progress.d.ts",
-  "repository": "https://github.com/xtermjs/xterm.js/tree/master/addons/addon-progress",
+  "repository": "https://github.com/daiyam/xterm-tab/tree/master/addons/addon-progress",
   "license": "MIT",
   "keywords": [
     "terminal",
