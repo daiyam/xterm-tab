@@ -8,17 +8,15 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: 18
-          registry-url: https://registry.npmjs.org
-          cache: yarn
+          node-version-file: '.nvmrc'
       - run: |
-          yarn
-          yarn setup
-          yarn esbuild
-          yarn test
+          npm ci
+          npm run setup
+          npm run esbuild
+          npm run test
       - run: ./publish.sh
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
