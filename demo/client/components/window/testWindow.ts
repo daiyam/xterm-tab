@@ -6,7 +6,7 @@
 import { writeUnicodeTable } from '../../unicodeTable';
 import type { IControlWindow } from '../controlBar';
 import { BaseWindow } from './baseWindow';
-import type { IDisposable, Terminal } from '@xterm/xterm';
+import type { IDisposable, Terminal } from '@daiyam/xterm-tab';
 import type { AddonCollection } from 'types';
 
 export class TestWindow extends BaseWindow implements IControlWindow {

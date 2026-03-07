@@ -3,8 +3,8 @@
  * @license MIT
  */
 
-import type { Terminal, ITerminalAddon } from '@xterm/xterm';
-import type { WebFontsAddon as IWebFontsApi } from '@xterm/addon-web-fonts';
+import type { Terminal, ITerminalAddon } from '@daiyam/xterm-tab';
+import type { WebFontsAddon as IWebFontsApi } from '@daiyam/xterm-tab-addon-web-fonts';
 
 
 /**

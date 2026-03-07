@@ -3,8 +3,8 @@
  * @license MIT
  */
 
-import type { Terminal, ITerminalAddon, IDisposable } from '@xterm/xterm';
-import type { ProgressAddon as IProgressApi, IProgressState } from '@xterm/addon-progress';
+import type { Terminal, ITerminalAddon, IDisposable } from '@daiyam/xterm-tab';
+import type { ProgressAddon as IProgressApi, IProgressState } from '@daiyam/xterm-tab-addon-progress';
 import type { Emitter, IEvent } from 'common/Event';
 
 

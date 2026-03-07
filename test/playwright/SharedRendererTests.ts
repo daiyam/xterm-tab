@@ -5,7 +5,7 @@
 
 import { IImage32, decodePng } from '@lunapaint/png-codec';
 import { LocatorScreenshotOptions, test } from '@playwright/test';
-import { ITheme } from '@xterm/xterm';
+import { ITheme } from '@daiyam/xterm-tab';
 import { ITestContext, openTerminal, pollFor, pollForApproximate } from './TestUtils';
 
 export interface ISharedRendererTestContext {

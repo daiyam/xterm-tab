@@ -1,5 +1,5 @@
 {
-  "name": "@xterm/addon-web-fonts",
+  "name": "@daiyam/xterm-tab-addon-web-fonts",
   "version": "0.1.0",
   "author": {
     "name": "The xterm.js authors",

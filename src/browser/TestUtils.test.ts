@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { IDisposable, IMarker, ILinkProvider, IDecorationOptions, IDecoration, IRenderDimensions as IRenderDimensionsApi } from '@xterm/xterm';
+import { IDisposable, IMarker, ILinkProvider, IDecorationOptions, IDecoration, IRenderDimensions as IRenderDimensionsApi } from '@daiyam/xterm-tab';
 import { ICharacterJoinerService, ICharSizeService, ICoreBrowserService, IMouseService, IRenderService, ISelectionService, IThemeService } from 'browser/services/Services';
 import { IRenderDimensions, IRenderer, IRequestRedrawEvent } from 'browser/renderer/shared/Types';
 import { IColorSet, ITerminal, ILinkifier2, IBrowser, IViewport, ICompositionHelper, CharacterJoinerHandler, IBufferRange, ReadonlyColorSet, IBufferElementProvider } from 'browser/Types';

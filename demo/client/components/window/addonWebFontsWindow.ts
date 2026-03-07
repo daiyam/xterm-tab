@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { loadFonts } from '@xterm/addon-web-fonts';
+import { loadFonts } from '@daiyam/xterm-tab-addon-web-fonts';
 import { BaseWindow } from './baseWindow';
 import type { IControlWindow } from '../controlBar';
 

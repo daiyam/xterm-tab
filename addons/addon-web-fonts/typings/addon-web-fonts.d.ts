@@ -4,9 +4,9 @@
  */
 
 
-import { Terminal, ITerminalAddon } from '@xterm/xterm';
+import { Terminal, ITerminalAddon } from '@daiyam/xterm-tab';
 
-declare module '@xterm/addon-web-fonts' {
+declare module '@daiyam/xterm-tab-addon-web-fonts' {
 
   /**
    * Addon to use webfonts in xterm.js
@@ -40,10 +40,10 @@ declare module '@xterm/addon-web-fonts' {
      *
      * Found webfonts in `fontFamily` are temporarily removed until the webfont
      * resources are fully loaded.
-     * 
+     *
      * Call this method, if a terminal with webfonts is stuck with broken
      * glyph metrics.
-     * 
+     *
      * The returned promise will resolve, when font loading and layouting are done.
      */
     public relayout(): Promise<void>;

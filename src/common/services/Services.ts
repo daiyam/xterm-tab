@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import type { IDecoration, IDecorationOptions, ILinkHandler, ILogger, IWindowsPty, IOverviewRulerOptions } from '@xterm/xterm';
+import type { IDecoration, IDecorationOptions, ILinkHandler, ILogger, IWindowsPty, IOverviewRulerOptions } from '@daiyam/xterm-tab';
 import { CoreMouseEncoding, CoreMouseEventType, CursorInactiveStyle, CursorStyle, IAttributeData, ICharset, IColor, ICoreMouseEvent, ICoreMouseProtocol, IDecPrivateModes, IDisposable, IKittyKeyboardState, IModes, IOscLinkData, IWindowOptions } from 'common/Types';
 import { IBuffer, IBufferSet } from 'common/buffer/Types';
 import { createDecorator } from 'common/services/ServiceRegistry';

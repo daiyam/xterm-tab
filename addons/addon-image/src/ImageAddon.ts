@@ -3,8 +3,8 @@
  * @license MIT
  */
 
-import type { ITerminalAddon, IDisposable } from '@xterm/xterm';
-import type { ImageAddon as IImageApi } from '@xterm/addon-image';
+import type { ITerminalAddon, IDisposable } from '@daiyam/xterm-tab';
+import type { ImageAddon as IImageApi } from '@daiyam/xterm-tab-addon-image';
 import { Emitter, type IEvent } from 'common/Event';
 import { IIPHandler } from './IIPHandler';
 import { ImageRenderer } from './ImageRenderer';

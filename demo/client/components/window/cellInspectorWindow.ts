@@ -5,7 +5,7 @@
 
 import { BaseWindow } from './baseWindow';
 import type { IControlWindow } from '../controlBar';
-import type { IBufferCell } from '@xterm/xterm';
+import type { IBufferCell } from '@daiyam/xterm-tab';
 
 // Underline style values from common/buffer/Constants.ts
 const enum UnderlineStyle {

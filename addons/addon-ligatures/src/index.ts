@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import type { Terminal } from '@xterm/xterm';
+import type { Terminal } from '@daiyam/xterm-tab';
 import { Font } from './fontLigatures/index';
 
 import load from './font';

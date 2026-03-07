@@ -3,8 +3,8 @@
  * @license MIT
  */
 
-import type { ISearchResultChangeEvent } from '@xterm/addon-search';
-import type { IDisposable } from '@xterm/xterm';
+import type { ISearchResultChangeEvent } from '@daiyam/xterm-tab-addon-search';
+import type { IDisposable } from '@daiyam/xterm-tab';
 import { Emitter, type IEvent } from 'common/Event';
 import { Disposable } from 'common/Lifecycle';
 import type { ISearchResult } from './SearchEngine';

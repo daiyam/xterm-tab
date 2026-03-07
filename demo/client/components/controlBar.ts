@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import type { Terminal } from '@xterm/xterm';
+import type { Terminal } from '@daiyam/xterm-tab';
 
 export interface ITabConfig {
   id: string;

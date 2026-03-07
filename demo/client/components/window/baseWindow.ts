@@ -5,7 +5,7 @@
 
 import type { AddonCollection } from '../../types';
 import type { IControlWindow } from '../controlBar';
-import type { Terminal } from '@xterm/xterm';
+import type { Terminal } from '@daiyam/xterm-tab';
 
 export abstract class BaseWindow implements IControlWindow {
   protected get _terminal(): Terminal { return this._terminalPrivate; }

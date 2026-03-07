@@ -8,7 +8,7 @@ import { UnderlineStyle } from 'common/buffer/Constants';
 import { IBufferSet } from 'common/buffer/Types';
 import { IParams } from 'common/parser/Types';
 import { ICoreMouseService, ICoreService, IOptionsService, IUnicodeService } from 'common/services/Services';
-import { IFunctionIdentifier, ITerminalOptions as IPublicTerminalOptions } from '@xterm/xterm';
+import { IFunctionIdentifier, ITerminalOptions as IPublicTerminalOptions } from '@daiyam/xterm-tab';
 import type { Emitter, IEvent } from 'common/Event';
 
 export interface ICoreTerminal {

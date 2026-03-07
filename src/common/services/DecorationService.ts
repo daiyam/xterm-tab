@@ -8,7 +8,7 @@ import { Disposable, DisposableStore, toDisposable } from 'common/Lifecycle';
 import { IDecorationService, IInternalDecoration, ILogService } from 'common/services/Services';
 import { SortedList } from 'common/SortedList';
 import { IColor } from 'common/Types';
-import { IDecoration, IDecorationOptions, IMarker } from '@xterm/xterm';
+import { IDecoration, IDecorationOptions, IMarker } from '@daiyam/xterm-tab';
 import { Emitter } from 'common/Event';
 
 // Work variables to avoid garbage collection

@@ -4,7 +4,7 @@
  */
 
 import { BaseWindow } from './baseWindow';
-import type { Terminal, ITheme } from '@xterm/xterm';
+import type { Terminal, ITheme } from '@daiyam/xterm-tab';
 import type { IControlWindow } from '../controlBar';
 import type { AddonCollection } from 'types';
 

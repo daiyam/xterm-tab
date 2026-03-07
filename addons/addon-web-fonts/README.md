@@ -50,8 +50,8 @@ without leaving the terminal in an unusable state.
 Recap - normally boostrapping of a new terminal involves these basic steps (Typescript):
 
 ```typescript
-import { Terminal } from '@xterm/xterm';
-import { XYAddon } from '@xterm/addon-xy';
+import { Terminal } from '@daiyam/xterm-tab';
+import { XYAddon } from '@daiyam/xterm-tab-addon-xy';
 
 // create a `Terminal` instance with some options, e.g. a custom font family
 const terminal = new Terminal({fontFamily: 'monospace'});
@@ -72,9 +72,9 @@ mentioned above, while the webfont is not yet fully available.
 
 To fix that, the webfonts addon provides a waiting condition (Typescript):
 ```typescript
-import { Terminal } from '@xterm/xterm';
-import { XYAddon } from '@xterm/addon-xy';
-import { WebFontsAddon } from '@xterm/addon-web-fonts';
+import { Terminal } from '@daiyam/xterm-tab';
+import { XYAddon } from '@daiyam/xterm-tab-addon-xy';
+import { WebFontsAddon } from '@daiyam/xterm-tab-addon-web-fonts';
 
 // create a `Terminal` instance, now with webfonts
 const terminal = new Terminal({fontFamily: '"Web Mono 1", "Super Powerline", monospace'});
@@ -101,10 +101,10 @@ bootstrapping code into several stages. If that is too much of a hassle,
 you can also move the whole bootstrapping under the waiting condition by using
 the static loader instead (Typescript):
 ```typescript
-import { Terminal } from '@xterm/xterm';
-import { XYAddon } from '@xterm/addon-xy';
+import { Terminal } from '@daiyam/xterm-tab';
+import { XYAddon } from '@daiyam/xterm-tab-addon-xy';
 // import static loader
-import { loadFonts } from '@xterm/addon-web-fonts';
+import { loadFonts } from '@daiyam/xterm-tab-addon-web-fonts';
 
 loadFonts(['Web Mono 1', 'Super Powerline']).then(() => {
   // create a `Terminal` instance, now with webfonts
@@ -177,9 +177,9 @@ higher up in the code).
 The addon has been tested to work with webfonts from fontsource.
 Javascript example for `vite` with ESM import:
 ```javascript
-import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import { loadFonts } from '@xterm/addon-web-fonts';
+import { Terminal } from '@daiyam/xterm-tab';
+import { FitAddon } from '@daiyam/xterm-tab-addon-fit';
+import { loadFonts } from '@daiyam/xterm-tab-addon-web-fonts';
 import '@xterm/xterm/css/xterm.css';
 import '@fontsource/roboto-mono';
 import '@fontsource/roboto-mono/400.css';

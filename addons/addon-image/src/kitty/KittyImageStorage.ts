@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { IDisposable } from '@xterm/xterm';
+import { IDisposable } from '@daiyam/xterm-tab';
 import { ImageStorage } from '../ImageStorage';
 import { ImageLayer } from '../Types';
 import { IKittyImageData } from './KittyGraphicsTypes';

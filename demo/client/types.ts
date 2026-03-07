@@ -5,19 +5,19 @@
  * This file is the entry point for browserify.
  */
 
-import type { ImageAddon } from '@xterm/addon-image';
-import type { AttachAddon } from '@xterm/addon-attach';
-import type { ClipboardAddon } from '@xterm/addon-clipboard';
-import type { FitAddon } from '@xterm/addon-fit';
-import type { LigaturesAddon } from '@xterm/addon-ligatures';
-import type { ProgressAddon } from '@xterm/addon-progress';
-import type { SearchAddon } from '@xterm/addon-search';
-import type { SerializeAddon } from '@xterm/addon-serialize';
-import type { UnicodeGraphemesAddon } from '@xterm/addon-unicode-graphemes';
-import type { Unicode11Addon } from '@xterm/addon-unicode11';
-import type { WebFontsAddon } from '@xterm/addon-web-fonts';
-import type { WebLinksAddon } from '@xterm/addon-web-links';
-import type { WebglAddon } from '@xterm/addon-webgl';
+import type { ImageAddon } from '@daiyam/xterm-tab-addon-image';
+import type { AttachAddon } from '@daiyam/xterm-tab-addon-attach';
+import type { ClipboardAddon } from '@daiyam/xterm-tab-addon-clipboard';
+import type { FitAddon } from '@daiyam/xterm-tab-addon-fit';
+import type { LigaturesAddon } from '@daiyam/xterm-tab-addon-ligatures';
+import type { ProgressAddon } from '@daiyam/xterm-tab-addon-progress';
+import type { SearchAddon } from '@daiyam/xterm-tab-addon-search';
+import type { SerializeAddon } from '@daiyam/xterm-tab-addon-serialize';
+import type { UnicodeGraphemesAddon } from '@daiyam/xterm-tab-addon-unicode-graphemes';
+import type { Unicode11Addon } from '@daiyam/xterm-tab-addon-unicode11';
+import type { WebFontsAddon } from '@daiyam/xterm-tab-addon-web-fonts';
+import type { WebLinksAddon } from '@daiyam/xterm-tab-addon-web-links';
+import type { WebglAddon } from '@daiyam/xterm-tab-addon-webgl';
 
 export type AddonType = 'attach' | 'clipboard' | 'fit' | 'image' | 'ligatures' | 'progress' | 'search' | 'serialize' | 'unicode11' | 'unicodeGraphemes' | 'webFonts' | 'webLinks' | 'webgl';
 

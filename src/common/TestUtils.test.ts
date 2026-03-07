@@ -11,7 +11,7 @@ import { IBufferSet, IBuffer } from 'common/buffer/Types';
 import { BufferSet } from 'common/buffer/BufferSet';
 import { IDecPrivateModes, ICoreMouseEvent, CoreMouseEventType, ICharset, IModes, IAttributeData, IOscLinkData, IDisposable } from 'common/Types';
 import { UnicodeV6 } from 'common/input/UnicodeV6';
-import { IDecorationOptions, IDecoration } from '@xterm/xterm';
+import { IDecorationOptions, IDecoration } from '@daiyam/xterm-tab';
 import { Emitter, type IEvent } from 'common/Event';
 
 export class MockBufferService implements IBufferService {

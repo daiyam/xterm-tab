@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import type { Terminal } from '@xterm/xterm';
+import type { Terminal } from '@daiyam/xterm-tab';
 import { combinedDisposable, Disposable, MutableDisposable, toDisposable } from 'common/Lifecycle';
 import { disposableTimeout } from 'common/Async';
 

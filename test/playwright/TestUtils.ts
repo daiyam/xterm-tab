@@ -9,7 +9,7 @@ import type { IRenderDimensions as IRenderDimensionsInternal } from 'browser/ren
 import type { IRenderService } from 'browser/services/Services';
 import type { ICoreTerminal, IDisposable, IMarker } from 'common/Types';
 import * as playwright from '@playwright/test';
-import { IBuffer, IBufferCell, IBufferLine, IBufferNamespace, IBufferRange, IDecoration, IDecorationOptions, IModes, IRenderDimensions, ITerminalInitOnlyOptions, ITerminalOptions, Terminal } from '@xterm/xterm';
+import { IBuffer, IBufferCell, IBufferLine, IBufferNamespace, IBufferRange, IDecoration, IDecorationOptions, IModes, IRenderDimensions, ITerminalInitOnlyOptions, ITerminalOptions, Terminal } from '@daiyam/xterm-tab';
 
 type PageFunction<Arg, R> = (arg: Arg) => R | Promise<R>;
 

@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { IDisposable } from '@xterm/xterm';
+import { IDisposable } from '@daiyam/xterm-tab';
 import { IApcHandler, IImageAddonOptions, IResetHandler, ITerminalExt, ImageLayer } from '../Types';
 import { ImageRenderer } from '../ImageRenderer';
 import { CELL_SIZE_DEFAULT } from '../ImageStorage';

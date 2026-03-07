@@ -5,7 +5,7 @@
 
 import { BaseWindow } from './baseWindow';
 import type { IControlWindow } from '../controlBar';
-import type { IImageAddonOptions } from '@xterm/addon-image';
+import type { IImageAddonOptions } from '@daiyam/xterm-tab-addon-image';
 
 export class AddonImageWindow extends BaseWindow implements IControlWindow {
   public readonly id = 'addon-image';

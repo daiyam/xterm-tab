@@ -3,8 +3,8 @@
  * @license MIT
  */
 
-import type { Terminal, IDisposable, ITerminalAddon } from '@xterm/xterm';
-import type { SearchAddon as ISearchApi, ISearchOptions, ISearchAddonOptions, ISearchResultChangeEvent, ISearchDecorationOptions } from '@xterm/addon-search';
+import type { Terminal, IDisposable, ITerminalAddon } from '@daiyam/xterm-tab';
+import type { SearchAddon as ISearchApi, ISearchOptions, ISearchAddonOptions, ISearchResultChangeEvent, ISearchDecorationOptions } from '@daiyam/xterm-tab-addon-search';
 import { Emitter, type IEvent } from 'common/Event';
 import { Disposable, MutableDisposable, toDisposable } from 'common/Lifecycle';
 import { disposableTimeout } from 'common/Async';

@@ -3,8 +3,8 @@
  * @license MIT
  */
 
-import type { ITerminalAddon, Terminal } from '@xterm/xterm';
-import type { IWebglAddonOptions, WebglAddon as IWebglApi } from '@xterm/addon-webgl';
+import type { ITerminalAddon, Terminal } from '@daiyam/xterm-tab';
+import type { IWebglAddonOptions, WebglAddon as IWebglApi } from '@daiyam/xterm-tab-addon-webgl';
 import { ICharacterJoinerService, ICharSizeService, ICoreBrowserService, IRenderService, IThemeService } from 'browser/services/Services';
 import { ITerminal } from 'browser/Types';
 import { Disposable, toDisposable } from 'common/Lifecycle';

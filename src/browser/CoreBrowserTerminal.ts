@@ -21,7 +21,7 @@
  *   http://linux.die.net/man/7/urxvt
  */
 
-import { IDecoration, IDecorationOptions, IDisposable, ILinkProvider, IMarker, IRenderDimensions as IRenderDimensionsApi } from '@xterm/xterm';
+import { IDecoration, IDecorationOptions, IDisposable, ILinkProvider, IMarker, IRenderDimensions as IRenderDimensionsApi } from '@daiyam/xterm-tab';
 import { copyHandler, handlePasteEvent, moveTextAreaUnderMouseCursor, paste, rightClickHandler } from 'browser/Clipboard';
 import * as Strings from 'browser/LocalizableStrings';
 import { OscLinkProvider } from 'browser/OscLinkProvider';

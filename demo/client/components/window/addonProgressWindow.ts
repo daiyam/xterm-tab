@@ -5,7 +5,7 @@
 
 import { BaseWindow } from './baseWindow';
 import type { IControlWindow } from '../controlBar';
-import type { IProgressState } from '@xterm/addon-progress';
+import type { IProgressState } from '@daiyam/xterm-tab-addon-progress';
 
 export class AddonProgressWindow extends BaseWindow implements IControlWindow {
   public readonly id = 'addon-progress';

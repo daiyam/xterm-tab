@@ -3,7 +3,7 @@
  * @license MIT
  */
 
-import { Terminal } from '@xterm/xterm';
+import { Terminal } from '@daiyam/xterm-tab';
 
 export type UnicodeRangeDefinition = [
   label: string,

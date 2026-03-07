@@ -6,15 +6,15 @@
  */
 
 // HACK: Playwright/WebKit on Windows does not support WebAssembly https://stackoverflow.com/q/62311688/1156119
-import type { ImageAddon as ImageAddonType } from '@xterm/addon-image';
+import type { ImageAddon as ImageAddonType } from '@daiyam/xterm-tab-addon-image';
 let ImageAddon: typeof ImageAddonType | undefined; // eslint-disable-line @typescript-eslint/naming-convention
 if ('WebAssembly' in window) {
-  const imageAddon = require('@xterm/addon-image');
+  const imageAddon = require('@daiyam/xterm-tab-addon-image');
   ImageAddon = imageAddon.ImageAddon;
 }
 
-import { Terminal, ITerminalOptions, type ITheme } from '@xterm/xterm';
-import { AttachAddon } from '@xterm/addon-attach';
+import { Terminal, ITerminalOptions, type ITheme } from '@daiyam/xterm-tab';
+import { AttachAddon } from '@daiyam/xterm-tab-addon-attach';
 import { AddonImageWindow } from './components/window/addonImageWindow';
 import { AddonLigaturesWindow } from './components/window/addonLigaturesWindow';
 import { AddonProgressWindow } from './components/window/addonProgressWindow';
@@ -30,17 +30,17 @@ import { OptionsWindow } from './components/window/optionsWindow';
 import { StyleWindow } from './components/window/styleWindow';
 import { TestWindow } from './components/window/testWindow';
 import { VtWindow } from './components/window/vtWindow';
-import { ClipboardAddon } from '@xterm/addon-clipboard';
-import { FitAddon } from '@xterm/addon-fit';
-import { LigaturesAddon } from '@xterm/addon-ligatures';
-import { ProgressAddon } from '@xterm/addon-progress';
-import { SearchAddon, ISearchOptions } from '@xterm/addon-search';
-import { SerializeAddon } from '@xterm/addon-serialize';
-import { WebFontsAddon } from '@xterm/addon-web-fonts';
-import { WebLinksAddon } from '@xterm/addon-web-links';
-import { WebglAddon } from '@xterm/addon-webgl';
-import { Unicode11Addon } from '@xterm/addon-unicode11';
-import { UnicodeGraphemesAddon } from '@xterm/addon-unicode-graphemes';
+import { ClipboardAddon } from '@daiyam/xterm-tab-addon-clipboard';
+import { FitAddon } from '@daiyam/xterm-tab-addon-fit';
+import { LigaturesAddon } from '@daiyam/xterm-tab-addon-ligatures';
+import { ProgressAddon } from '@daiyam/xterm-tab-addon-progress';
+import { SearchAddon, ISearchOptions } from '@daiyam/xterm-tab-addon-search';
+import { SerializeAddon } from '@daiyam/xterm-tab-addon-serialize';
+import { WebFontsAddon } from '@daiyam/xterm-tab-addon-web-fonts';
+import { WebLinksAddon } from '@daiyam/xterm-tab-addon-web-links';
+import { WebglAddon } from '@daiyam/xterm-tab-addon-webgl';
+import { Unicode11Addon } from '@daiyam/xterm-tab-addon-unicode11';
+import { UnicodeGraphemesAddon } from '@daiyam/xterm-tab-addon-unicode-graphemes';
 import { AddonCollection, type AddonType, type IDemoAddon } from './types';
 
 export interface IWindowWithTerminal extends Window {
