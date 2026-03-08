@@ -3,15 +3,13 @@
  "description": "A headless terminal component that runs in Node.js",
  "version": "6.1.0-beta.169.0",
  "main": "lib-headless/xterm-headless.js",
- "module": "lib-headless/xterm-headless.mjs",
+ "module": "lib/xterm.mjs",
  "types": "typings/xterm-headless.d.ts",
- "exports": {
-  "types": "./typings/xterm-headless.d.ts",
-  "import": "./lib-headless/xterm-headless.mjs",
-  "require": "./lib-headless/xterm-headless.js"
- },
  "repository": "https://github.com/daiyam/xterm-tab",
  "license": "MIT",
+ "workspaces": [
+  "addons/*"
+ ],
  "keywords": [
   "cli",
   "command-line",

@@ -9,7 +9,7 @@ should_publish() {
   npm view $NAME versions | grep "$VERSION"
 }
 
-npm config set loglevel=silent
+# npm config set loglevel=silent
 
 if [[ -z $( should_publish ) ]]; then
   npm publish --access=public
